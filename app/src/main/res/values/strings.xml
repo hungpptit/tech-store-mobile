@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Tech-Store-Mobile</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_saved">Saved</string>
+    <string name="nav_cart">Cart</string>
+    <string name="nav_account">Account</string>
 </resources>
