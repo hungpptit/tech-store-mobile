@@ -1,0 +1,182 @@
+# THIET KE DATABASE SCHEMA - TECH STORE (FIREBASE FIRESTORE)
+
+Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man hinh:
+- Gio hang
+- Thanh toan
+- Dia chi
+- Thong bao
+- Tim kiem
+
+## 1) users
+**Muc dich:** Luu ho so nguoi dung va cau hinh mac dinh.
+
+**Fields:**
+- `userId`: `string` - PK, UID tu Firebase Auth
+- `fullName`: `string`
+- `email`: `string`
+- `phoneNumber`: `string`
+- `dateOfBirth`: `string` (dd/MM/yyyy)
+- `gender`: `string` (`Male` | `Female` | `Other`)
+- `avatarUrl`: `string` (link Firebase Storage)
+- `defaultAddressId`: `string` (tham chieu `addresses.addressId`)
+- `defaultPaymentId`: `string` (tham chieu `payment_methods.paymentId`)
+- `createdAt`: `timestamp`
+
+## 2) categories
+**Muc dich:** Nhom san pham theo danh muc de hien thi va loc.
+
+**Fields:**
+- `categoryId`: `string`
+- `categoryName`: `string` (vd: Smart Phone, Laptop, Watch, Screen)
+- `imageUrl`: `string`
+- `displayOrder`: `number` (thu tu hien thi)
+
+## 3) products
+**Muc dich:** Luu thong tin san pham va du lieu phuc vu tim kiem.
+
+**Fields:**
+- `productId`: `string`
+- `categoryId`: `string`
+- `productName`: `string`
+- `brand`: `string` (vd: Apple, Samsung, MSI, Deli)
+- `description`: `string`
+- `basePrice`: `number`
+- `discountPercentage`: `number`
+- `finalPrice`: `number`
+- `colors`: `array<string>` (vd: `["#000000", "#FFFFFF"]`)
+- `imageUrl`: `string`
+- `rating`: `number` (vd: 4.5)
+- `reviewCount`: `number`
+- `stockQuantity`: `number`
+- `isNew`: `boolean`
+- `isBestSeller`: `boolean`
+- `searchKeywords`: `array<string>` (vd: `["mac", "macbook", "m4"]`)
+
+## 4) addresses
+**Muc dich:** Luu danh sach dia chi giao hang cua user.
+
+**Fields:**
+- `addressId`: `string`
+- `userId`: `string`
+- `nickname`: `string` (vd: Home, Office, Parent House)
+- `fullAddress`: `string`
+- `isDefault`: `boolean`
+
+> Co the trien khai dang sub-collection (`users/{userId}/addresses`) hoac collection rieng.
+
+## 5) payment_methods
+**Muc dich:** Luu phuong thuc thanh toan da luu cua user.
+
+**Fields:**
+- `paymentId`: `string`
+- `userId`: `string`
+- `cardType`: `string` (vd: VISA, MasterCard)
+- `cardNumber`: `string` (chi luu masked, vd: `**** **** **** 2512`)
+- `expiryDate`: `string` (MM/YY)
+- `cardHolderName`: `string`
+- `isDefault`: `boolean`
+
+## 6) cart
+**Muc dich:** Luu trang thai gio hang hien tai cua user (moi user 1 document).
+
+**Fields:**
+- `userId`: `string` (co the dung lam document ID)
+- `items`: `array<map>`
+  - `productId`: `string`
+  - `quantity`: `number`
+  - `selectedColor`: `string`
+  - `priceAtAdded`: `number`
+- `updatedAt`: `timestamp`
+
+## 7) orders
+**Muc dich:** Luu don hang, lich su xu ly va thong tin snapshot luc mua.
+
+**Fields:**
+- `orderId`: `string`
+- `userId`: `string`
+- `orderDate`: `timestamp`
+- `status`: `string` (`Packing` | `Picked` | `In Transit` | `Delivered` | `Completed`)
+- `items`: `array<map>`
+  - `productId`: `string`
+  - `productName`: `string`
+  - `quantity`: `number`
+  - `price`: `number`
+  - `imageUrl`: `string`
+  - `color`: `string`
+- `summary`: `map`
+  - `subTotal`: `number`
+  - `shippingFee`: `number`
+  - `vatAmount`: `number`
+  - `totalAmount`: `number`
+- `shippingAddress`: `map` (snapshot dia chi khi dat hang)
+- `paymentMethod`: `string` (vd: Visa 2512, Cash)
+- `trackingHistory`: `array<map>`
+  - `statusName`: `string`
+  - `location`: `string`
+  - `timestamp`: `timestamp`
+
+## 8) notifications
+**Muc dich:** Gui va luu thong bao den user.
+
+**Fields:**
+- `notificationId`: `string`
+- `userId`: `string`
+- `title`: `string`
+- `content`: `string`
+- `type`: `string` (`Promotion` | `Order` | `System`)
+- `isRead`: `boolean`
+- `createdAt`: `timestamp`
+
+## 9) reviews
+**Muc dich:** Luu danh gia san pham cua nguoi dung.
+
+**Fields:**
+- `reviewId`: `string`
+- `productId`: `string`
+- `userId`: `string`
+- `userName`: `string` (snapshot de hien thi nhanh)
+- `rating`: `number`
+- `comment`: `string`
+- `createdAt`: `timestamp`
+
+## 10) search_history
+**Muc dich:** Luu tu khoa tim kiem gan day cua user.
+
+**Fields:**
+- `userId`: `string` (document ID)
+- `recentKeywords`: `array<string>` (toi da 5-10 tu khoa)
+
+---
+
+## Cong dung tung model (Java)
+
+- `User`: Dai dien ho so tai khoan, su dung o man hinh profile, cai dat, dia chi va thanh toan mac dinh.
+- `Category`: Nguon du lieu cho menu danh muc, bo loc homepage/search.
+- `Product`: Model trung tam cua catalog; dung cho danh sach san pham, chi tiet san pham, tim kiem.
+- `Address`: Quan ly dia chi giao hang cua user; dung trong checkout va profile.
+- `PaymentMethod`: Quan ly thong tin thanh toan da luu (masked card); dung trong checkout.
+- `Cart`: Trang thai gio hang theo user (tong quan gio + danh sach item + thoi gian cap nhat).
+- `CartItem`: Tung dong san pham trong gio (so luong, mau, gia tai thoi diem them).
+- `Order`: Don hang tong the, gom trang thai, danh sach item, thanh toan, dia chi, tracking.
+- `OrderItem`: Snapshot san pham trong don hang de tranh sai lech khi gia/thong tin san pham thay doi sau nay.
+- `OrderSummary`: Tong hop tien truoc/sau phi ship va VAT de render man hinh thanh toan/chi tiet don.
+- `ShippingAddressSnapshot`: Snapshot dia chi giao nhan tai thoi diem dat don.
+- `TrackingHistoryItem`: Tung moc trang thai van chuyen/de xu ly cua don hang.
+- `UserNotification`: Model thong bao theo user; dung cho inbox thong bao va badge chua doc.
+- `Review`: Noi dung danh gia/sao theo san pham; dung de tinh rating trung binh va hien thi review.
+- `SearchHistory`: Luu lich su tim kiem gan day de de xuat nhanh tren man hinh search.
+
+---
+
+## Luu y trien khai Firebase
+
+1. **Security Rules**
+   - Chi cho phep user doc/ghi du lieu cua chinh ho (dua vao `request.auth.uid == userId`).
+
+2. **Tim kiem san pham**
+   - Dung `searchKeywords` + truy van:
+   - `where("searchKeywords", "array-contains", query)`
+
+3. **Gia tien**
+   - Luon luu dang `number` de tinh toan.
+   - VAT nen dat thanh hang so trong app de de bao tri.
