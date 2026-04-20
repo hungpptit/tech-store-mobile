@@ -2,20 +2,20 @@ package com.example.tech_store_mobile;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import androidx.activity.EdgeToEdge;
+import android.util.Log;
+import android.view.View;
+
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentStatePagerAdapter;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.viewpager.widget.ViewPager;
 
 import com.example.tech_store_mobile.adapters.ViewpagerAdapter;
 import com.example.tech_store_mobile.ui.fragments.main.HomeFragment;
 import com.example.tech_store_mobile.utils.FirebaseConfig;
-import com.example.tech_store_mobile.utils.FirebaseInitializer;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
     private ViewPager mViewPager;
     private BottomNavigationView mBottomNavigationView;
 
@@ -69,6 +69,28 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageScrollStateChanged(int state) {}
         });
+
+        // 4. Listen for back stack changes to reload HomeFragment when returning
+        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
+            Log.d(TAG, "🔄 Back stack changed - back stack count: " + getSupportFragmentManager().getBackStackEntryCount());
+
+            // Khi back stack trống (tất cả fragments đã pop), reload HomeFragment
+            if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+                Log.d(TAG, "   All fragments popped - reloading HomeFragment data");
+
+                // Show ViewPager again
+                mViewPager.setVisibility(View.VISIBLE);
+                findViewById(R.id.fragment_container).setVisibility(View.GONE);
+
+                // Trigger HomeFragment reload by finding it and calling reload
+                HomeFragment homeFragment = (HomeFragment) getSupportFragmentManager()
+                        .findFragmentByTag("android:switcher:" + R.id.view_pager + ":0");
+                if (homeFragment != null && homeFragment.isVisible()) {
+                    Log.d(TAG, "   HomeFragment found and visible - reloading data");
+                    homeFragment.reloadData();
+                }
+            }
+        });
     }
 
     /**
@@ -82,9 +104,9 @@ public class MainActivity extends AppCompatActivity {
         // boolean isDataInitialized = prefs.getBoolean("firebase_data_initialized", false);
         boolean isDataInitialized = false; // DEBUG: Set to false để luôn reinitialize
 
-        if (!isDataInitialized) {
-            FirebaseInitializer.initializeAllData();
-            prefs.edit().putBoolean("firebase_data_initialized", true).apply();
-        }
+//        if (!isDataInitialized) {
+//            FirebaseInitializer.initializeAllData();
+//            prefs.edit().putBoolean("firebase_data_initialized", true).apply();
+//        }
     }
 }

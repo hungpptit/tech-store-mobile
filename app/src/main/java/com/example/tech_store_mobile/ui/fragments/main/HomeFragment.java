@@ -48,6 +48,9 @@ public class HomeFragment extends Fragment {
     private List<Category> categoryList;
     private List<Product> productList, bestSellersList;
 
+    // Flags
+    private boolean isFirstLoad = true;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -79,6 +82,30 @@ public class HomeFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(TAG, "🔄 HomeFragment onResume - isFirstLoad: " + isFirstLoad);
+
+        // Nếu không phải lần đầu load, reload data (quay lại từ ProductListFragment)
+        if (!isFirstLoad) {
+            Log.d(TAG, "   Reloading data because we came back from another fragment");
+            reloadData();
+        }
+        isFirstLoad = false;
+    }
+
+    /**
+     * Reload data từ Firebase
+     * Public method để gọi từ MainActivity khi back
+     */
+    public void reloadData() {
+        Log.d(TAG, "📡 reloadData called - loading all data from Firebase");
+        loadCategoriesFromFirebase();
+        loadNewProductsFromFirebase();
+        loadBestSellersFromFirebase();
+    }
+
     // ==================== SETUP RECYCLERVIEW ====================
 
     private void setupCategoryRecyclerView() {
@@ -93,9 +120,13 @@ public class HomeFragment extends Fragment {
             );
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
-                    .replace(R.id.view_pager, fragment)
+                    .replace(R.id.fragment_container, fragment)
                     .addToBackStack(null)
                     .commit();
+
+            // Hide ViewPager and show fragment container
+            requireActivity().findViewById(R.id.view_pager).setVisibility(View.GONE);
+            requireActivity().findViewById(R.id.fragment_container).setVisibility(View.VISIBLE);
         });
         rvCategories.setAdapter(categoryAdapter);
     }

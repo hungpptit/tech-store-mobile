@@ -102,7 +102,30 @@ public class ProductListFragment extends Fragment {
         loadProductsByCategory();
 
         // Back button
-        btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
+        btnBack.setOnClickListener(v -> {
+            Log.d(TAG, "🔙 Back button clicked");
+
+            // Pop fragment
+            if (isAdded()) {
+                requireActivity().getSupportFragmentManager().popBackStack();
+
+                // Show ViewPager and hide fragment container with delay to ensure proper timing
+                v.postDelayed(() -> {
+                    // Check if fragment is still attached before accessing activity
+                    if (isAdded()) {
+                        View viewPager = requireActivity().findViewById(R.id.view_pager);
+                        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+
+                        if (viewPager != null) viewPager.setVisibility(View.VISIBLE);
+                        if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
+
+                        Log.d(TAG, "   ViewPager visibility restored");
+                    } else {
+                        Log.d(TAG, "   Fragment detached, skipping visibility update");
+                    }
+                }, 100);
+            }
+        });
 
         return view;
     }
@@ -113,7 +136,7 @@ public class ProductListFragment extends Fragment {
         Log.d(TAG, "   rvProducts height: " + rvProducts.getHeight());
         
         rvProducts.setLayoutManager(new GridLayoutManager(getContext(), 2));
-        rvProducts.setNestedScrollingEnabled(false);
+        rvProducts.setNestedScrollingEnabled(true);  // Enable nested scrolling
         productAdapter = new ProductAdapter(productList);
         rvProducts.setAdapter(productAdapter);
         
@@ -189,7 +212,7 @@ public class ProductListFragment extends Fragment {
                         
                         productAdapter.notifyDataSetChanged();
                         Log.d(TAG, "✅ Products loaded (by Name) for category " + categoryName + ": " + productList.size());
-                        
+
                         if (productList.size() == 0) {
                             Toast.makeText(getContext(), "No products found for this category", Toast.LENGTH_SHORT).show();
                         }
