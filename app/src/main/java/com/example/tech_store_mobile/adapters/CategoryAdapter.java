@@ -16,9 +16,18 @@ import java.util.List;
 
 public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder> {
     private List<Category> categories;
+    private OnCategoryClickListener listener;
+
+    public interface OnCategoryClickListener {
+        void onCategoryClick(Category category);
+    }
 
     public CategoryAdapter(List<Category> categories) {
         this.categories = categories;
+    }
+
+    public void setOnCategoryClickListener(OnCategoryClickListener listener) {
+        this.listener = listener;
     }
 
     @NonNull
@@ -35,9 +44,9 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
         // Đổ tên danh mục từ Model Category vào TextView
         holder.tvName.setText(category.getCategoryName());
 
-        // Xử lý hiển thị ảnh dựa trên tên danh mục (Vì bạn chưa có link ảnh online)
+        // Xử lý hiển thị ảnh dựa trên tên danh mục
         switch (category.getCategoryName()) {
-            case "Smart Phone":
+            case "Smartphone":
                 holder.imgCategory.setImageResource(R.drawable.smart_phone);
                 break;
             case "Laptop":
@@ -50,9 +59,16 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
                 holder.imgCategory.setImageResource(R.drawable.screen);
                 break;
             default:
-                holder.imgCategory.setImageResource(R.drawable.laptop); // Ảnh mặc định
+                holder.imgCategory.setImageResource(R.drawable.laptop);
                 break;
         }
+
+        // Click listener
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onCategoryClick(category);
+            }
+        });
     }
 
     @Override
