@@ -43,6 +43,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore' // Để lưu database như mình đã thiết kế
     implementation 'com.google.firebase:firebase-auth'      // Để đăng nhập bằng email/password
     implementation 'com.google.firebase:firebase-storage'
+    implementation libs.firebase.common
 
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
