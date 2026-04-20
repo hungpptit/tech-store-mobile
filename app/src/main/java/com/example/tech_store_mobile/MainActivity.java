@@ -11,6 +11,7 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.example.tech_store_mobile.adapters.ViewpagerAdapter;
 import com.example.tech_store_mobile.ui.fragments.main.HomeFragment;
+import com.example.tech_store_mobile.utils.FirebaseConfig;
 import com.example.tech_store_mobile.utils.FirebaseInitializer;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -23,8 +24,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 🔥 Cấu hình Firebase
+        FirebaseConfig.configureFirestore();
+
         // 🔥 Khởi tạo Firebase data lần đầu tiên
-        initializeFirebaseDataIfNeeded();
+        // DISABLED: Bạn đã có data rồi, không cần auto-create
+        // initializeFirebaseDataIfNeeded();
 
         mViewPager = findViewById(R.id.view_pager);
         mBottomNavigationView = findViewById(R.id.bottom_navigation);
@@ -71,7 +76,11 @@ public class MainActivity extends AppCompatActivity {
      */
     private void initializeFirebaseDataIfNeeded() {
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        boolean isDataInitialized = prefs.getBoolean("firebase_data_initialized", false);
+
+        // Development mode: LUÔN khởi tạo dữ liệu mới
+        // Sau này khi deploy, hãy thay đổi thành:
+        // boolean isDataInitialized = prefs.getBoolean("firebase_data_initialized", false);
+        boolean isDataInitialized = false; // DEBUG: Set to false để luôn reinitialize
 
         if (!isDataInitialized) {
             FirebaseInitializer.initializeAllData();

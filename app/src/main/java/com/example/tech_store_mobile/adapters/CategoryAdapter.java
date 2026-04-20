@@ -1,5 +1,6 @@
 package com.example.tech_store_mobile.adapters;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,12 +10,14 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.Model.Category;
 import com.example.tech_store_mobile.R;
 
 import java.util.List;
 
 public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder> {
+    private static final String TAG = "CategoryAdapter";
     private List<Category> categories;
     private OnCategoryClickListener listener;
 
@@ -44,23 +47,22 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
         // Đổ tên danh mục từ Model Category vào TextView
         holder.tvName.setText(category.getCategoryName());
 
-        // Xử lý hiển thị ảnh dựa trên tên danh mục
-        switch (category.getCategoryName()) {
-            case "Smartphone":
-                holder.imgCategory.setImageResource(R.drawable.smart_phone);
-                break;
-            case "Laptop":
-                holder.imgCategory.setImageResource(R.drawable.laptop);
-                break;
-            case "Watch":
-                holder.imgCategory.setImageResource(R.drawable.watch);
-                break;
-            case "Screen":
-                holder.imgCategory.setImageResource(R.drawable.screen);
-                break;
-            default:
-                holder.imgCategory.setImageResource(R.drawable.laptop);
-                break;
+        // Load ảnh từ Firebase URL bằng Glide (hoặc fallback to local drawable)
+        String imageUrl = category.getImageUrl();
+        Log.d(TAG, "Category: " + category.getCategoryName() + ", imageUrl: " + imageUrl);
+
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            // Có URL từ Firebase → load ảnh từ Cloudinary/URL
+            Log.d(TAG, "   Loading from Firebase URL: " + imageUrl);
+            Glide.with(holder.itemView.getContext())
+                    .load(imageUrl)
+                    .placeholder(R.drawable.laptop)  // Placeholder khi loading
+                    .error(getFallbackDrawable(category))  // Fallback nếu URL lỗi
+                    .into(holder.imgCategory);
+        } else {
+            // Không có URL → fallback to local drawable
+            Log.d(TAG, "   Using fallback drawable");
+            holder.imgCategory.setImageResource(getFallbackDrawable(category));
         }
 
         // Click listener
@@ -69,6 +71,24 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
                 listener.onCategoryClick(category);
             }
         });
+    }
+
+    /**
+     * Fallback drawable dựa trên category name (khi không có URL từ Firebase)
+     */
+    private int getFallbackDrawable(Category category) {
+        switch (category.getCategoryName()) {
+            case "Smartphone":
+                return R.drawable.smart_phone;
+            case "Laptop":
+                return R.drawable.laptop;
+            case "Watch":
+                return R.drawable.watch;
+            case "Screen":
+                return R.drawable.screen;
+            default:
+                return R.drawable.laptop;
+        }
     }
 
     @Override

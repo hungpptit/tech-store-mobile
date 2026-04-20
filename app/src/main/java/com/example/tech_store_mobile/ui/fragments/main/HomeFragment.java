@@ -86,6 +86,7 @@ public class HomeFragment extends Fragment {
         categoryAdapter = new CategoryAdapter(categoryList);
         categoryAdapter.setOnCategoryClickListener(category -> {
             // Navigate to ProductListFragment
+            Log.d(TAG, "📌 Category clicked - ID: " + category.getCategoryId() + ", Name: " + category.getCategoryName());
             ProductListFragment fragment = ProductListFragment.newInstance(
                     category.getCategoryId(),
                     category.getCategoryName()
@@ -129,6 +130,11 @@ public class HomeFragment extends Fragment {
                         categoryList.addAll(task.getResult().toObjects(Category.class));
                         categoryAdapter.notifyDataSetChanged();
                         Log.d(TAG, "✅ Categories loaded: " + categoryList.size());
+                        
+                        // Debug: print all categories
+                        for (Category cat : categoryList) {
+                            Log.d(TAG, "   - Category ID: " + cat.getCategoryId() + ", Name: " + cat.getCategoryName());
+                        }
                     } else {
                         Log.e(TAG, "❌ Error loading categories", task.getException());
                         Toast.makeText(getContext(), "Error loading categories", Toast.LENGTH_SHORT).show();
