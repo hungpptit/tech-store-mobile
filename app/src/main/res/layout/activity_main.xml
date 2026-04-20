@@ -7,36 +7,34 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ScrollView
-        android:id="@+id/scroll_view_main"
+    <androidx.viewpager.widget.ViewPager
+        android:id="@+id/view_pager"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:importantForAccessibility="no"
-        tools:ignore="MissingConstraints"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottom_navigation">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            tools:ignore="UselessLeaf">
-            <!-- Thêm nội dung của bạn ở đây -->
-            <View 
-                android:layout_width="match_parent"
-                android:layout_height="1dp"/>
-        </LinearLayout>
-    </ScrollView>
+        app:layout_constraintBottom_toTopOf="@id/bottom_navigation" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?android:attr/windowBackground"
-        tools:ignore="BottomNavLayout"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_nav_menu"
+        android:layout_height="100dp"
+        android:background="@android:color/white"
         app:labelVisibilityMode="labeled"
-        app:itemIconSize="24dp" />
+        app:menu="@menu/bottom_nav_menu"
+
+        app:itemIconSize="20dp"
+
+        app:itemPaddingTop="20dp"
+        app:itemPaddingBottom="4dp"
+
+        app:itemIconTint="@color/nav_item_color"
+        app:itemTextColor="@color/nav_item_color"
+
+        app:itemActiveIndicatorStyle="@null"
+
+        app:itemRippleColor="@android:color/transparent"
+
+        app:elevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
