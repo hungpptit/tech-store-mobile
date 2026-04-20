@@ -96,17 +96,17 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Khởi tạo Firebase data lần đầu tiên
      */
-    private void initializeFirebaseDataIfNeeded() {
-        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-
-        // Development mode: LUÔN khởi tạo dữ liệu mới
-        // Sau này khi deploy, hãy thay đổi thành:
-        // boolean isDataInitialized = prefs.getBoolean("firebase_data_initialized", false);
-        boolean isDataInitialized = false; // DEBUG: Set to false để luôn reinitialize
-
-//        if (!isDataInitialized) {
-//            FirebaseInitializer.initializeAllData();
-//            prefs.edit().putBoolean("firebase_data_initialized", true).apply();
-//        }
-    }
+//    private void initializeFirebaseDataIfNeeded() {
+//        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+//
+//        // Development mode: LUÔN khởi tạo dữ liệu mới
+//        // Sau này khi deploy, hãy thay đổi thành:
+//        // boolean isDataInitialized = prefs.getBoolean("firebase_data_initialized", false);
+////        boolean isDataInitialized = false; // DEBUG: Set to false để luôn reinitialize
+//
+////        if (!isDataInitialized) {
+////            FirebaseInitializer.initializeAllData();
+////            prefs.edit().putBoolean("firebase_data_initialized", true).apply();
+////        }
+//    }
 }
