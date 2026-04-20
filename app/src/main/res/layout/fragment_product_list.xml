@@ -4,35 +4,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/white">
+    android:background="@android:color/white"
+    android:fitsSystemWindows="true">
 
-    <!-- Header -->
+    <!-- Header with extra padding for status bar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
-        android:background="@android:color/white"
-        android:elevation="2dp">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/btnBack"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_back"
-            android:contentDescription="Back" />
+        <!-- Spacer for status bar -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="16dp"
+            android:background="@android:color/white" />
 
-        <TextView
-            android:id="@+id/tvCategoryName"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Category"
-            android:textColor="@android:color/black"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginStart="16dp" />
+        <!-- Back button + Category name -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:background="@android:color/white"
+            android:elevation="2dp">
+
+            <ImageView
+                android:id="@+id/btnBack"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_back"
+                android:contentDescription="Back" />
+
+            <TextView
+                android:id="@+id/tvCategoryName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Category"
+                android:textColor="@android:color/black"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginStart="16dp" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Divider -->
@@ -42,14 +56,14 @@
         android:background="@android:color/darker_gray"
         android:alpha="0.1" />
 
-    <!-- Products Grid -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvProducts"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="8dp"
-        android:clipToPadding="false" />
+     <!-- Products Grid -->
+     <androidx.recyclerview.widget.RecyclerView
+         android:id="@+id/rvProducts"
+         android:layout_width="match_parent"
+         android:layout_height="0dp"
+         android:layout_weight="1"
+         android:padding="8dp"
+         android:clipToPadding="false" />
 
 </LinearLayout>
 
