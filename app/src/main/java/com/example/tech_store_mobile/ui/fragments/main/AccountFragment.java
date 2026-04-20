@@ -1,66 +1,69 @@
 package com.example.tech_store_mobile.ui.fragments.main;
 
 import android.os.Bundle;
-
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.example.tech_store_mobile.R;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link AccountFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class AccountFragment extends Fragment {
-
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
 
     public AccountFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment AccountFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static AccountFragment newInstance(String param1, String param2) {
-        AccountFragment fragment = new AccountFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
+    // --- BƯỚC QUAN TRỌNG NHẤT BỊ THIẾU ---
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        // Nạp file fragment_account.xml vào fragment
         return inflater.inflate(R.layout.fragment_account, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // 1. My Orders
+        setupMenuItem(view.findViewById(R.id.item_my_orders), "My Orders", R.drawable.box);
+
+        // 2. My Details
+        setupMenuItem(view.findViewById(R.id.item_my_details), "My Details", R.drawable.details);
+
+        // 3. Address Book
+        setupMenuItem(view.findViewById(R.id.item_address_book), "Address Book", R.drawable.address);
+
+        // 4. Payment Methods
+        setupMenuItem(view.findViewById(R.id.item_payment_methods), "Payment Methods", R.drawable.card);
+
+        // 5. Help Center
+        setupMenuItem(view.findViewById(R.id.item_help_center), "Help Center", R.drawable.headphones);
+
+        // 6. Logout
+        View logoutView = view.findViewById(R.id.item_logout);
+        setupMenuItem(logoutView, "Logout", R.drawable.logout);
+
+        // Chỉnh màu chữ Logout sang đỏ
+        TextView tvLogout = logoutView.findViewById(R.id.tv_menu_title);
+        tvLogout.setTextColor(android.graphics.Color.RED);
+
+        // Đổi màu icon Logout sang đỏ (nếu là ảnh vector)
+        ImageView imgLogout = logoutView.findViewById(R.id.img_menu_icon);
+        imgLogout.setColorFilter(android.graphics.Color.RED);
+    }
+
+    private void setupMenuItem(View itemView, String title, int iconRes) {
+        if (itemView != null) {
+            TextView tvTitle = itemView.findViewById(R.id.tv_menu_title);
+            ImageView imgIcon = itemView.findViewById(R.id.img_menu_icon);
+            tvTitle.setText(title);
+            imgIcon.setImageResource(iconRes);
+        }
     }
 }

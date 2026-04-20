@@ -1,9 +1,11 @@
 package com.example.tech_store_mobile.ui.fragments.main;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,74 +19,169 @@ import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.CategoryAdapter;
 import com.example.tech_store_mobile.adapters.ProductAdapter;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * HomeFragment - Màn hình trang chủ
+ * Hiển thị:
+ * - Categories (từ Firebase)
+ * - New Products (từ Firebase)
+ * - Best Sellers (từ Firebase)
+ */
 public class HomeFragment extends Fragment {
-    // 1. Khai báo thêm rvBestSellers
+    private static final String TAG = "HomeFragment";
+
+    // Views
     private RecyclerView rvCategories, rvProducts, rvBestSellers;
+
+    // Firebase
+    private FirebaseFirestore db;
+
+    // Adapters
+    private CategoryAdapter categoryAdapter;
+    private ProductAdapter productAdapter, bestSellerAdapter;
+
+    // Data
+    private List<Category> categoryList;
+    private List<Product> productList, bestSellersList;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Đảm bảo inflate đúng file XML có Layout tràn viền
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
-        // 1. Ánh xạ View [cite: 13, 14]
+        // Init Firebase
+        db = FirebaseFirestore.getInstance();
+
+        // Init data lists
+        categoryList = new ArrayList<>();
+        productList = new ArrayList<>();
+        bestSellersList = new ArrayList<>();
+
+        // Map Views
         rvCategories = view.findViewById(R.id.rv_categories_home);
         rvProducts = view.findViewById(R.id.rv_products_home);
-        rvBestSellers = view.findViewById(R.id.rv_best_sellers); // Ánh xạ thêm phần mới
+        rvBestSellers = view.findViewById(R.id.rv_best_sellers);
 
-        // 2. Thiết lập Dữ liệu danh mục [cite: 2, 13]
-        setupCategories();
+        // Setup RecyclerViews
+        setupCategoryRecyclerView();
+        setupProductRecyclerView();
+        setupBestSellerRecyclerView();
 
-        // 3. Thiết lập Dữ liệu Sản phẩm mới [cite: 3, 4, 14]
-        setupNewProducts();
-
-        // 4. Thiết lập Dữ liệu Bán chạy [cite: 4, 14]
-        setupBestSellers();
+        // Load Data from Firebase
+        loadCategoriesFromFirebase();
+        loadNewProductsFromFirebase();
+        loadBestSellersFromFirebase();
 
         return view;
     }
 
-    private void setupCategories() {
-        List<Category> categoryList = new ArrayList<>();
-        // categoryId, categoryName, imageUrl, displayOrder [cite: 2]
-        categoryList.add(new Category("1", "Smart Phone", "", 1L));
-        categoryList.add(new Category("2", "Laptop", "", 2L));
-        categoryList.add(new Category("3", "Watch", "", 3L));
-        categoryList.add(new Category("4", "Screen", "", 4L));
+    // ==================== SETUP RECYCLERVIEW ====================
 
+    private void setupCategoryRecyclerView() {
         rvCategories.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        rvCategories.setAdapter(new CategoryAdapter(categoryList));
+        categoryAdapter = new CategoryAdapter(categoryList);
+        categoryAdapter.setOnCategoryClickListener(category -> {
+            // Navigate to ProductListFragment
+            Log.d(TAG, "📌 Category clicked - ID: " + category.getCategoryId() + ", Name: " + category.getCategoryName());
+            ProductListFragment fragment = ProductListFragment.newInstance(
+                    category.getCategoryId(),
+                    category.getCategoryName()
+            );
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.view_pager, fragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
+        rvCategories.setAdapter(categoryAdapter);
     }
 
-    private void setupNewProducts() {
-        List<Product> productList = new ArrayList<>();
-        // Thêm các sản phẩm có isNew = true
-        productList.add(new Product("p1", "c1", "Macbook Pro M4", "Apple", "Chip M4 mạnh mẽ",
-                2089.0, 0.0, 2089.0, null, "", 5.0, 100L, 10L, true, true, null));
-
-        productList.add(new Product("p2", "c2", "Airpods 4", "Apple", "Chống ồn chủ động",
-                20.90, 0.0, 20.90, null, "", 4.5, 50L, 20L, true, false, null));
-
+    private void setupProductRecyclerView() {
         rvProducts.setLayoutManager(new GridLayoutManager(getContext(), 2));
         rvProducts.setNestedScrollingEnabled(false);
-        rvProducts.setAdapter(new ProductAdapter(productList));
+        productAdapter = new ProductAdapter(productList);
+        rvProducts.setAdapter(productAdapter);
     }
 
-    private void setupBestSellers() {
-        List<Product> bestSellersList = new ArrayList<>();
-        // Thêm các sản phẩm có isBestSeller = true
-        bestSellersList.add(new Product("p3", "c1", "Apple Magic Mouse", "Apple", "Thiết kế tối giản",
-                10.7, 0.0, 10.7, null, "", 4.5, 30L, 15L, false, true, null));
-
-        bestSellersList.add(new Product("p4", "c1", "Macbook Air M2", "Apple", "Mỏng nhẹ",
-                700.0, 0.0, 700.0, null, "", 4.7, 150L, 5L, false, true, null));
-
+    private void setupBestSellerRecyclerView() {
         rvBestSellers.setLayoutManager(new GridLayoutManager(getContext(), 2));
         rvBestSellers.setNestedScrollingEnabled(false);
-        rvBestSellers.setAdapter(new ProductAdapter(bestSellersList));
+        bestSellerAdapter = new ProductAdapter(bestSellersList);
+        rvBestSellers.setAdapter(bestSellerAdapter);
+    }
+
+    // ==================== LOAD FROM FIREBASE ====================
+
+    /**
+     * Lấy danh sách categories từ Firebase
+     * Sắp xếp theo displayOrder
+     */
+    private void loadCategoriesFromFirebase() {
+        db.collection("categories")
+                .orderBy("displayOrder")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        categoryList.clear();
+                        categoryList.addAll(task.getResult().toObjects(Category.class));
+                        categoryAdapter.notifyDataSetChanged();
+                        Log.d(TAG, "✅ Categories loaded: " + categoryList.size());
+                        
+                        // Debug: print all categories
+                        for (Category cat : categoryList) {
+                            Log.d(TAG, "   - Category ID: " + cat.getCategoryId() + ", Name: " + cat.getCategoryName());
+                        }
+                    } else {
+                        Log.e(TAG, "❌ Error loading categories", task.getException());
+                        Toast.makeText(getContext(), "Error loading categories", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    /**
+     * Lấy danh sách sản phẩm mới (isNew = true)
+     * Giới hạn 4 sản phẩm
+     */
+    private void loadNewProductsFromFirebase() {
+        db.collection("products")
+                .whereEqualTo("isNew", true)
+                .limit(4)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        productList.clear();
+                        productList.addAll(task.getResult().toObjects(Product.class));
+                        productAdapter.notifyDataSetChanged();
+                        Log.d(TAG, "✅ New products loaded: " + productList.size());
+                    } else {
+                        Log.e(TAG, "❌ Error loading new products", task.getException());
+                    }
+                });
+    }
+
+    /**
+     * Lấy danh sách sản phẩm bán chạy (isBestSeller = true)
+     * Giới hạn 4 sản phẩm
+     */
+    private void loadBestSellersFromFirebase() {
+        db.collection("products")
+                .whereEqualTo("isBestSeller", true)
+                .limit(4)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        bestSellersList.clear();
+                        bestSellersList.addAll(task.getResult().toObjects(Product.class));
+                        bestSellerAdapter.notifyDataSetChanged();
+                        Log.d(TAG, "✅ Best sellers loaded: " + bestSellersList.size());
+                    } else {
+                        Log.e(TAG, "❌ Error loading best sellers", task.getException());
+                    }
+                });
     }
 }
+

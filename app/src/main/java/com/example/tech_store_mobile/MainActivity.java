@@ -1,5 +1,6 @@
 package com.example.tech_store_mobile;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,6 +11,8 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.example.tech_store_mobile.adapters.ViewpagerAdapter;
 import com.example.tech_store_mobile.ui.fragments.main.HomeFragment;
+import com.example.tech_store_mobile.utils.FirebaseConfig;
+import com.example.tech_store_mobile.utils.FirebaseInitializer;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
@@ -21,7 +24,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        com.example.tech_store_mobile.utils.FirebaseInitializer.initializeAllData();
+        // 🔥 Cấu hình Firebase
+        FirebaseConfig.configureFirestore();
+
+        // 🔥 Khởi tạo Firebase data lần đầu tiên
+        // DISABLED: Bạn đã có data rồi, không cần auto-create
+        // initializeFirebaseDataIfNeeded();
 
         mViewPager = findViewById(R.id.view_pager);
         mBottomNavigationView = findViewById(R.id.bottom_navigation);
@@ -61,5 +69,22 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageScrollStateChanged(int state) {}
         });
+    }
+
+    /**
+     * Khởi tạo Firebase data lần đầu tiên
+     */
+    private void initializeFirebaseDataIfNeeded() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+
+        // Development mode: LUÔN khởi tạo dữ liệu mới
+        // Sau này khi deploy, hãy thay đổi thành:
+        // boolean isDataInitialized = prefs.getBoolean("firebase_data_initialized", false);
+        boolean isDataInitialized = false; // DEBUG: Set to false để luôn reinitialize
+
+        if (!isDataInitialized) {
+            FirebaseInitializer.initializeAllData();
+            prefs.edit().putBoolean("firebase_data_initialized", true).apply();
+        }
     }
 }
