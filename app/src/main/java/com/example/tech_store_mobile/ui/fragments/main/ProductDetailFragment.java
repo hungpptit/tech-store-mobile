@@ -249,77 +249,55 @@ public class ProductDetailFragment extends Fragment {
 
     private View createColorOption(String colorName) {
         View colorView = new View(requireContext());
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(48, 48);
-        params.setMargins(8, 0, 8, 0);
+
+        // 1. Tăng kích thước tổng thể lên một chút (từ 32 lên 40) để chứa viền
+        int size = (int) (40 * getResources().getDisplayMetrics().density);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
+        params.setMargins(0, 0, (int) (10 * getResources().getDisplayMetrics().density), 0);
         colorView.setLayoutParams(params);
 
-        // Get color from name
-        int colorCode = getColorCode(colorName);
-        colorView.setBackgroundColor(colorCode);
+        // 2. QUAN TRỌNG: Thêm padding để viền không bị cắt
+        int p = (int) (4 * getResources().getDisplayMetrics().density);
+        colorView.setPadding(p, p, p, p);
 
-        // Store color code as tag for later use
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.OVAL);
+        int colorCode = getColorCode(colorName);
+        shape.setColor(colorCode);
+
+        colorView.setBackground(shape);
         colorView.setTag(colorCode);
 
-        // Click listener
         colorView.setOnClickListener(v -> {
-            Log.d(TAG, "🎨 Color selected: " + colorName);
             selectedColor = colorName;
-
-            // Update all colors - remove border from others, add to this one
             for (int i = 0; i < llColorContainer.getChildCount(); i++) {
                 updateColorViewBorder(llColorContainer.getChildAt(i), false);
             }
             updateColorViewBorder(v, true);
-
-            Toast.makeText(requireContext(), "Selected: " + colorName, Toast.LENGTH_SHORT).show();
         });
 
         return colorView;
     }
 
     private void updateColorViewBorder(View colorView, boolean isSelected) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.OVAL);
+        shape.setColor((int) colorView.getTag());
+
         if (isSelected) {
-            // Create yellow border with increased thickness (8dp)
-            GradientDrawable borderDrawable = new GradientDrawable();
-            borderDrawable.setShape(GradientDrawable.RECTANGLE);
-            borderDrawable.setCornerRadius(6f);
-
-            // Get the original background color from tag
-            int bgColor = 0xFF808080; // Default gray
-            if (colorView.getTag() != null) {
-                try {
-                    bgColor = (int) colorView.getTag();
-                } catch (Exception e) {
-                    Log.e(TAG, "Error getting tag color", e);
-                }
-            }
-
-            borderDrawable.setColor(bgColor);
-            // 8dp thick yellow border for better visibility
-            borderDrawable.setStroke(8, requireContext().getColor(R.color.yellow_star));
-            colorView.setBackground(borderDrawable);
-
-            // Add elevation for shadow effect
-            colorView.setElevation(8f);
-            colorView.setPadding(0, 0, 0, 0);
-
-            Log.d(TAG, "✅ Enhanced yellow border (8dp) added to selected color");
+            // Vẽ viền đen dày 3dp (~6-8px)
+            shape.setStroke((int) (3 * getResources().getDisplayMetrics().density), Color.BLACK);
         } else {
-            // Remove border - just set background color
-            if (colorView.getTag() != null) {
-                try {
-                    int originalColor = (int) colorView.getTag();
-                    colorView.setBackgroundColor(originalColor);
-                } catch (Exception e) {
-                    Log.e(TAG, "Error restoring color", e);
-                }
+            // Nếu là màu trắng thì giữ viền xám mờ, màu khác thì không viền
+            int bgColor = (int) colorView.getTag();
+            if (bgColor == Color.WHITE) {
+                shape.setStroke(1, Color.LTGRAY);
+            } else {
+                shape.setStroke(0, Color.TRANSPARENT);
             }
-            // Remove elevation
-            colorView.setElevation(0f);
-            colorView.setPadding(0, 0, 0, 0);
         }
+        colorView.setBackground(shape);
     }
-
     /**
      * Chuyển đổi tên màu thành mã hex color từ resources
      */
