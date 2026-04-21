@@ -4,6 +4,8 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,11 +20,9 @@ public class AccountFragment extends Fragment {
         // Required empty public constructor
     }
 
-    // --- BƯỚC QUAN TRỌNG NHẤT BỊ THIẾU ---
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        // Nạp file fragment_account.xml vào fragment
         return inflater.inflate(R.layout.fragment_account, container, false);
     }
 
@@ -37,7 +37,11 @@ public class AccountFragment extends Fragment {
         setupMenuItem(view.findViewById(R.id.item_my_details), "My Details", R.drawable.details);
 
         // 3. Address Book
-        setupMenuItem(view.findViewById(R.id.item_address_book), "Address Book", R.drawable.address);
+        View addressView = view.findViewById(R.id.item_address_book);
+        setupMenuItem(addressView, "Address", R.drawable.address);
+        addressView.setOnClickListener(v -> {
+            replaceFragment(new AddressFragment());
+        });
 
         // 4. Payment Methods
         setupMenuItem(view.findViewById(R.id.item_payment_methods), "Payment Methods", R.drawable.card);
@@ -49,11 +53,9 @@ public class AccountFragment extends Fragment {
         View logoutView = view.findViewById(R.id.item_logout);
         setupMenuItem(logoutView, "Logout", R.drawable.logout);
 
-        // Chỉnh màu chữ Logout sang đỏ
         TextView tvLogout = logoutView.findViewById(R.id.tv_menu_title);
         tvLogout.setTextColor(android.graphics.Color.RED);
 
-        // Đổi màu icon Logout sang đỏ (nếu là ảnh vector)
         ImageView imgLogout = logoutView.findViewById(R.id.img_menu_icon);
         imgLogout.setColorFilter(android.graphics.Color.RED);
     }
@@ -66,4 +68,25 @@ public class AccountFragment extends Fragment {
             imgIcon.setImageResource(iconRes);
         }
     }
+
+    private void replaceFragment(Fragment fragment) {
+        // 1. Tìm các View ở Activity
+        View container = getActivity().findViewById(R.id.fragment_container);
+        View viewPager = getActivity().findViewById(R.id.view_pager);
+        View bottomNav = getActivity().findViewById(R.id.bottom_navigation); // Thêm dòng này
+
+        if (container != null && viewPager != null && bottomNav != null) {
+            // 2. Hiện container, ẩn ViewPager và ẩn Bottom Navigation
+            container.setVisibility(View.VISIBLE);
+            viewPager.setVisibility(View.GONE);
+            bottomNav.setVisibility(View.GONE); // ẨN THANH MENU DƯỚI
+        }
+
+        // 3. Chuyển Fragment
+        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        transaction.replace(R.id.fragment_container, fragment);
+        transaction.addToBackStack(null);
+        transaction.commit();
+    }
+
 }

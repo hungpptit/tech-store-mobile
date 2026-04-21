@@ -59,7 +59,7 @@ public class FirebaseInitializer {
                 "Flagship Apple smartphone with A17 Pro chip",
                 1099.99, 10.0, 989.99,
                 new ArrayList<>(Arrays.asList("Black", "Gold", "Silver")),
-                "", 4.8, 250L, 50L, true, true,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.8, 250L, 50L, true, true,
                 new ArrayList<>(Arrays.asList("phone", "apple", "smartphone"))
         ));
 
@@ -68,7 +68,7 @@ public class FirebaseInitializer {
                 "Latest Samsung flagship with advanced camera",
                 899.99, 15.0, 764.99,
                 new ArrayList<>(Arrays.asList("Blue", "Gray", "White")),
-                "", 4.6, 180L, 60L, true, true,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.6, 180L, 60L, true, true,
                 new ArrayList<>(Arrays.asList("phone", "samsung", "android"))
         ));
 
@@ -77,7 +77,7 @@ public class FirebaseInitializer {
                 "Google's flagship with AI-powered camera",
                 799.99, 20.0, 639.99,
                 new ArrayList<>(Arrays.asList("Black", "Green")),
-                "", 4.5, 120L, 40L, true, false,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.5, 120L, 40L, true, false,
                 new ArrayList<>(Arrays.asList("phone", "google", "pixel"))
         ));
 
@@ -87,7 +87,7 @@ public class FirebaseInitializer {
                 "Powerful laptop with M3 Max processor",
                 1999.99, 5.0, 1899.99,
                 new ArrayList<>(Arrays.asList("Silver", "Space Gray")),
-                "", 4.9, 300L, 30L, false, true,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.9, 300L, 30L, false, true,
                 new ArrayList<>(Arrays.asList("laptop", "apple", "macbook"))
         ));
 
@@ -96,7 +96,7 @@ public class FirebaseInitializer {
                 "Premium Windows laptop with great display",
                 1499.99, 12.0, 1319.99,
                 new ArrayList<>(Arrays.asList("Silver", "Platinum")),
-                "", 4.7, 200L, 25L, false, true,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.7, 200L, 25L, false, true,
                 new ArrayList<>(Arrays.asList("laptop", "dell", "windows"))
         ));
 
@@ -105,7 +105,7 @@ public class FirebaseInitializer {
                 "Business laptop with excellent keyboard",
                 1299.99, 10.0, 1169.99,
                 new ArrayList<>(Arrays.asList("Black")),
-                "", 4.6, 150L, 35L, false, false,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.6, 150L, 35L, false, false,
                 new ArrayList<>(Arrays.asList("laptop", "lenovo", "business"))
         ));
 
@@ -115,7 +115,7 @@ public class FirebaseInitializer {
                 "Latest Apple smartwatch with health features",
                 429.99, 16.0, 359.99,
                 new ArrayList<>(Arrays.asList("Silver", "Gold", "Space Gray")),
-                "", 4.8, 280L, 40L, false, true,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.8, 280L, 40L, false, true,
                 new ArrayList<>(Arrays.asList("watch", "apple", "smartwatch"))
         ));
 
@@ -124,7 +124,7 @@ public class FirebaseInitializer {
                 "Android smartwatch with AMOLED display",
                 329.99, 22.0, 254.99,
                 new ArrayList<>(Arrays.asList("Silver", "Black")),
-                "", 4.6, 200L, 50L, false, true,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.6, 200L, 50L, false, true,
                 new ArrayList<>(Arrays.asList("watch", "samsung", "smartwatch"))
         ));
 
@@ -133,8 +133,98 @@ public class FirebaseInitializer {
                 "Advanced sports watch with GPS",
                 599.99, 23.0, 459.99,
                 new ArrayList<>(Arrays.asList("Black", "Gray")),
-                "", 4.7, 150L, 20L, false, false,
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.7, 150L, 20L, false, false,
                 new ArrayList<>(Arrays.asList("watch", "garmin", "sports"))
+        ));
+
+        products.add(new Product(
+                "prod_011", "cat_001", "iPhone 17 Pro Max", "Apple",
+                "Next-gen Apple flagship with A19 Pro chip and advanced AI",
+                1299.99, 0.0, 1299.99,
+                new ArrayList<>(Arrays.asList("Titanium Black", "Titanium White", "Titanium Gold")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 5.0, 50L, 100L, true, true,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone17"))
+        ));
+
+        products.add(new Product(
+                "prod_012", "cat_001", "iPhone 17 Pro", "Apple",
+                "Premium Apple smartphone with ProMotion display",
+                1099.99, 5.0, 1044.99,
+                new ArrayList<>(Arrays.asList("Titanium Black", "Titanium White")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.9, 45L, 80L, true, true,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone17"))
+        ));
+
+        products.add(new Product(
+                "prod_013", "cat_001", "iPhone 17", "Apple",
+                "Standard Apple iPhone 17 with excellent performance",
+                899.99, 5.0, 854.99,
+                new ArrayList<>(Arrays.asList("Blue", "Pink", "Midnight")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.8, 60L, 120L, false, true,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone17"))
+        ));
+
+        products.add(new Product(
+                "prod_014", "cat_001", "iPhone 16 Pro Max", "Apple",
+                "Apple flagship with A18 Pro chip and larger display",
+                1199.99, 10.0, 1079.99,
+                new ArrayList<>(Arrays.asList("Natural Titanium", "Blue Titanium")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.9, 300L, 60L, true, false,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone16"))
+        ));
+
+        products.add(new Product(
+                "prod_015", "cat_001", "iPhone 16 Pro", "Apple",
+                "Powerful iPhone 16 Pro with great camera capabilities",
+                999.99, 12.0, 879.99,
+                new ArrayList<>(Arrays.asList("White Titanium", "Black Titanium")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.8, 250L, 50L, true, false,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone16"))
+        ));
+
+        products.add(new Product(
+                "prod_016", "cat_001", "iPhone 16", "Apple",
+                "The iPhone 16 with A18 chip and vivid colors",
+                799.99, 15.0, 679.99,
+                new ArrayList<>(Arrays.asList("Green", "Yellow", "Black")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.7, 400L, 100L, true, false,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone16"))
+        ));
+
+        products.add(new Product(
+                "prod_017", "cat_001", "iPhone 15 Pro Max", "Apple",
+                "Apple's first titanium iPhone with 5x optical zoom",
+                1199.99, 15.0, 1019.99,
+                new ArrayList<>(Arrays.asList("Natural Titanium", "Blue Titanium")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.8, 500L, 40L, true, false,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone15"))
+        ));
+
+        products.add(new Product(
+                "prod_018", "cat_001", "iPhone 15", "Apple",
+                "Dynamic Island comes to the standard iPhone",
+                799.99, 20.0, 639.99,
+                new ArrayList<>(Arrays.asList("Pink", "Blue", "Black")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.7, 600L, 80L, false, false,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone15"))
+        ));
+
+        products.add(new Product(
+                "prod_019", "cat_001", "iPhone 14 Pro Max", "Apple",
+                "The introduction of Dynamic Island and 48MP camera",
+                1099.99, 25.0, 824.99,
+                new ArrayList<>(Arrays.asList("Deep Purple", "Gold", "Silver")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.7, 800L, 30L, false, false,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone14"))
+        ));
+
+        products.add(new Product(
+                "prod_020", "cat_001", "iPhone 14 Pro", "Apple",
+                "Pro performance with A16 Bionic chip",
+                999.99, 25.0, 749.99,
+                new ArrayList<>(Arrays.asList("Space Black", "Silver")),
+                "https://res.cloudinary.com/dlecaearb/image/upload/v1776681183/images_jcc8cx.jpg", 4.6, 750L, 25L, false, false,
+                new ArrayList<>(Arrays.asList("phone", "apple", "smartphone", "iphone14"))
         ));
 
         for (Product prod : products) {
