@@ -11,4 +11,24 @@
 
     <color name="red_heart">#FF0000</color>
 
+    <!-- Product Colors -->
+    <color name="product_black">#000000</color>
+    <color name="product_white">#FFFFFF</color>
+    <color name="product_gold">#FFD700</color>
+    <color name="product_silver">#C0C0C0</color>
+    <color name="product_space_gray">#707070</color>
+    <color name="product_blue">#0066FF</color>
+    <color name="product_gray">#AAAAAA</color>
+    <color name="product_green">#00AA00</color>
+    <color name="product_pink">#FF69B4</color>
+    <color name="product_midnight">#191970</color>
+    <color name="product_natural_titanium">#C0C0C0</color>
+    <color name="product_blue_titanium">#4169E1</color>
+    <color name="product_white_titanium">#F5F5F5</color>
+    <color name="product_black_titanium">#36454F</color>
+    <color name="product_platinum">#E5E4E2</color>
+    <color name="product_yellow">#FFFF00</color>
+    <color name="product_deep_purple">#663399</color>
+    <color name="product_default_gray">#808080</color>
+
 </resources>

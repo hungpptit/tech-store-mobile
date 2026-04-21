@@ -1,0 +1,383 @@
+package com.example.tech_store_mobile.ui.fragments.main;
+
+import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.LinearLayout;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.Color;
+import com.bumptech.glide.Glide;
+import com.example.tech_store_mobile.Model.Product;
+import com.example.tech_store_mobile.R;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+/**
+ * ProductDetailFragment - Hiển thị chi tiết sản phẩm
+ *
+ * Arguments:
+ * - productId: ID của sản phẩm
+ */
+public class ProductDetailFragment extends Fragment {
+    private static final String TAG = "ProductDetailFragment";
+    private static final String ARG_PRODUCT_ID = "productId";
+
+    // Views
+    private ImageView btnBack, btnFavorite, ivProductImage;
+    private TextView tvProductName, tvBrand, tvPrice, tvRating, tvReviewCount;
+    private TextView tvDescription, tvChooseColor;
+    private LinearLayout llColorContainer;
+    private View btnAddToCart;
+
+    // Firebase
+    private FirebaseFirestore db;
+
+    // Data
+    private String productId;
+    private Product product;
+    private String selectedColor = "";
+
+    public ProductDetailFragment() {
+    }
+
+    public static ProductDetailFragment newInstance(String productId) {
+        ProductDetailFragment fragment = new ProductDetailFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_PRODUCT_ID, productId);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            productId = getArguments().getString(ARG_PRODUCT_ID);
+        }
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_product_detail, container, false);
+
+        Log.d(TAG, "=== ProductDetailFragment onCreateView called ===");
+        Log.d(TAG, "productId: " + productId);
+
+        // Init Firebase
+        db = FirebaseFirestore.getInstance();
+
+        // Map Views
+        initializeViews(view);
+
+        // Setup listeners
+        setupListeners();
+
+        // Load product data
+        loadProductData();
+
+        return view;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // Hide bottom navigation menu
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+        if (bottomNav != null) {
+            bottomNav.setVisibility(View.GONE);
+            Log.d(TAG, "✅ Bottom navigation hidden");
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        // Show bottom navigation menu when returning
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+        if (bottomNav != null) {
+            bottomNav.setVisibility(View.VISIBLE);
+            Log.d(TAG, "✅ Bottom navigation shown");
+        }
+    }
+
+    private void initializeViews(View view) {
+        btnBack = view.findViewById(R.id.btnBack);
+        btnFavorite = view.findViewById(R.id.btnFavorite);
+        ivProductImage = view.findViewById(R.id.ivProductImage);
+        tvProductName = view.findViewById(R.id.tvProductName);
+        tvBrand = view.findViewById(R.id.tvBrand);
+        tvPrice = view.findViewById(R.id.tvPrice);
+        tvRating = view.findViewById(R.id.tvRating);
+        tvReviewCount = view.findViewById(R.id.tvReviewCount);
+        tvDescription = view.findViewById(R.id.tvDescription);
+        tvChooseColor = view.findViewById(R.id.tvChooseColor);
+        llColorContainer = view.findViewById(R.id.llColorContainer);
+        btnAddToCart = view.findViewById(R.id.btnAddToCart);
+
+        // Make button clickable
+        if (btnAddToCart != null) {
+            btnAddToCart.setClickable(true);
+            btnAddToCart.setFocusable(true);
+        }
+    }
+
+    private void setupListeners() {
+        // Back button
+        btnBack.setOnClickListener(v -> {
+            Log.d(TAG, "🔙 Back button clicked from ProductDetail");
+            if (isAdded()) {
+                // Show bottom navigation immediately
+                View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+                if (bottomNav != null) {
+                    bottomNav.setVisibility(View.VISIBLE);
+                }
+
+                requireActivity().getSupportFragmentManager().popBackStack();
+
+                v.postDelayed(() -> {
+                    if (isAdded()) {
+                        View viewPager = requireActivity().findViewById(R.id.view_pager);
+                        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+
+                        if (viewPager != null) viewPager.setVisibility(View.VISIBLE);
+                        if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
+                    }
+                }, 100);
+            }
+        });
+
+        // Favorite button
+        btnFavorite.setOnClickListener(v -> {
+            Log.d(TAG, "❤️ Favorite button clicked");
+            Toast.makeText(requireContext(), "Added to favorites!", Toast.LENGTH_SHORT).show();
+            // TODO: Implement add to favorites logic
+        });
+
+        // Add to cart button
+        btnAddToCart.setOnClickListener(v -> {
+            Log.d(TAG, "🛒 Add to cart clicked for product: " + productId);
+            if (selectedColor.isEmpty()) {
+                Toast.makeText(requireContext(), "Please choose a color", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Toast.makeText(requireContext(), "Added to cart! Color: " + selectedColor, Toast.LENGTH_SHORT).show();
+            // TODO: Implement add to cart logic
+        });
+    }
+
+    private void loadProductData() {
+        Log.d(TAG, "🔍 Loading product data for productId: " + productId);
+
+        db.collection("products")
+                .document(productId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        product = documentSnapshot.toObject(Product.class);
+                        Log.d(TAG, "✅ Product loaded: " + product.getProductName());
+                        displayProductData();
+                    } else {
+                        Log.e(TAG, "❌ Product not found: " + productId);
+                        Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Error loading product", e);
+                    Toast.makeText(requireContext(), "Error loading product: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void displayProductData() {
+        if (product == null || !isAdded()) return;
+
+        Log.d(TAG, "📱 Displaying product data");
+
+        // Product Name & Brand
+        tvProductName.setText(product.getProductName());
+        tvBrand.setText(product.getBrand());
+
+        // Price
+        String priceText = String.format("$ %.2f", product.getFinalPrice());
+        tvPrice.setText(priceText);
+
+        // Rating & Review Count
+        tvRating.setText(String.format("%.1f/5 ", product.getRating()));
+        tvReviewCount.setText(String.format("(%d reviews)", product.getReviewCount()));
+
+        // Description
+        tvDescription.setText(product.getDescription());
+
+        // Image
+        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            Glide.with(this)
+                    .load(product.getImageUrl())
+                    .placeholder(R.drawable.ic_launcher_background)
+                    .error(R.drawable.ic_launcher_foreground)
+                    .into(ivProductImage);
+        }
+
+        // Colors
+        setupColorPicker();
+    }
+
+    private void setupColorPicker() {
+        if (product.getColors() == null || product.getColors().isEmpty()) {
+            tvChooseColor.setText("No colors available");
+            return;
+        }
+
+        llColorContainer.removeAllViews();
+        selectedColor = ""; // Reset selection
+
+        for (String color : product.getColors()) {
+            View colorOption = createColorOption(color);
+            llColorContainer.addView(colorOption);
+        }
+    }
+
+    private View createColorOption(String colorName) {
+        View colorView = new View(requireContext());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(48, 48);
+        params.setMargins(8, 0, 8, 0);
+        colorView.setLayoutParams(params);
+
+        // Get color from name
+        int colorCode = getColorCode(colorName);
+        colorView.setBackgroundColor(colorCode);
+
+        // Store color code as tag for later use
+        colorView.setTag(colorCode);
+
+        // Click listener
+        colorView.setOnClickListener(v -> {
+            Log.d(TAG, "🎨 Color selected: " + colorName);
+            selectedColor = colorName;
+
+            // Update all colors - remove border from others, add to this one
+            for (int i = 0; i < llColorContainer.getChildCount(); i++) {
+                updateColorViewBorder(llColorContainer.getChildAt(i), false);
+            }
+            updateColorViewBorder(v, true);
+
+            Toast.makeText(requireContext(), "Selected: " + colorName, Toast.LENGTH_SHORT).show();
+        });
+
+        return colorView;
+    }
+
+    private void updateColorViewBorder(View colorView, boolean isSelected) {
+        if (isSelected) {
+            // Create yellow border with increased thickness (8dp)
+            GradientDrawable borderDrawable = new GradientDrawable();
+            borderDrawable.setShape(GradientDrawable.RECTANGLE);
+            borderDrawable.setCornerRadius(6f);
+
+            // Get the original background color from tag
+            int bgColor = 0xFF808080; // Default gray
+            if (colorView.getTag() != null) {
+                try {
+                    bgColor = (int) colorView.getTag();
+                } catch (Exception e) {
+                    Log.e(TAG, "Error getting tag color", e);
+                }
+            }
+
+            borderDrawable.setColor(bgColor);
+            // 8dp thick yellow border for better visibility
+            borderDrawable.setStroke(8, requireContext().getColor(R.color.yellow_star));
+            colorView.setBackground(borderDrawable);
+
+            // Add elevation for shadow effect
+            colorView.setElevation(8f);
+            colorView.setPadding(0, 0, 0, 0);
+
+            Log.d(TAG, "✅ Enhanced yellow border (8dp) added to selected color");
+        } else {
+            // Remove border - just set background color
+            if (colorView.getTag() != null) {
+                try {
+                    int originalColor = (int) colorView.getTag();
+                    colorView.setBackgroundColor(originalColor);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error restoring color", e);
+                }
+            }
+            // Remove elevation
+            colorView.setElevation(0f);
+            colorView.setPadding(0, 0, 0, 0);
+        }
+    }
+
+    /**
+     * Chuyển đổi tên màu thành mã hex color từ resources
+     */
+    private int getColorCode(String colorName) {
+        if (colorName == null) {
+            return requireContext().getColor(R.color.product_default_gray);
+        }
+
+        switch (colorName.toLowerCase().trim()) {
+            case "black":
+                return requireContext().getColor(R.color.product_black);
+            case "white":
+                return requireContext().getColor(R.color.product_white);
+            case "gold":
+                return requireContext().getColor(R.color.product_gold);
+            case "silver":
+                return requireContext().getColor(R.color.product_silver);
+            case "space gray":
+            case "space grey":
+                return requireContext().getColor(R.color.product_space_gray);
+            case "blue":
+                return requireContext().getColor(R.color.product_blue);
+            case "gray":
+            case "grey":
+                return requireContext().getColor(R.color.product_gray);
+            case "green":
+                return requireContext().getColor(R.color.product_green);
+            case "pink":
+                return requireContext().getColor(R.color.product_pink);
+            case "midnight":
+                return requireContext().getColor(R.color.product_midnight);
+            case "natural titanium":
+                return requireContext().getColor(R.color.product_natural_titanium);
+            case "blue titanium":
+                return requireContext().getColor(R.color.product_blue_titanium);
+            case "white titanium":
+                return requireContext().getColor(R.color.product_white_titanium);
+            case "black titanium":
+                return requireContext().getColor(R.color.product_black_titanium);
+            case "platinum":
+                return requireContext().getColor(R.color.product_platinum);
+            case "yellow":
+                return requireContext().getColor(R.color.product_yellow);
+            case "deep purple":
+                return requireContext().getColor(R.color.product_deep_purple);
+            default:
+                return requireContext().getColor(R.color.product_default_gray);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+

@@ -135,6 +135,13 @@ public class HomeFragment extends Fragment {
         rvProducts.setLayoutManager(new GridLayoutManager(getContext(), 2));
         rvProducts.setNestedScrollingEnabled(false);
         productAdapter = new ProductAdapter(productList);
+
+        // Add click listener for new products
+        productAdapter.setOnProductClickListener(product -> {
+            Log.d(TAG, "🛍️ New Product clicked: " + product.getProductName());
+            navigateToProductDetail(product.getProductId());
+        });
+
         rvProducts.setAdapter(productAdapter);
     }
 
@@ -142,7 +149,33 @@ public class HomeFragment extends Fragment {
         rvBestSellers.setLayoutManager(new GridLayoutManager(getContext(), 2));
         rvBestSellers.setNestedScrollingEnabled(false);
         bestSellerAdapter = new ProductAdapter(bestSellersList);
+
+        // Add click listener for best sellers
+        bestSellerAdapter.setOnProductClickListener(product -> {
+            Log.d(TAG, "🛍️ Best Seller clicked: " + product.getProductName());
+            navigateToProductDetail(product.getProductId());
+        });
+
         rvBestSellers.setAdapter(bestSellerAdapter);
+    }
+
+    private void navigateToProductDetail(String productId) {
+        Log.d(TAG, "🔀 Navigating to ProductDetailFragment for product: " + productId);
+
+        // Hide ViewPager and show fragment container
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+
+        // Create and navigate to ProductDetailFragment
+        ProductDetailFragment detailFragment = ProductDetailFragment.newInstance(productId);
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, detailFragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     // ==================== LOAD FROM FIREBASE ====================

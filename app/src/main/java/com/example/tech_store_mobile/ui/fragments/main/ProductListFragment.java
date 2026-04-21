@@ -138,9 +138,35 @@ public class ProductListFragment extends Fragment {
         rvProducts.setLayoutManager(new GridLayoutManager(getContext(), 2));
         rvProducts.setNestedScrollingEnabled(true);  // Enable nested scrolling
         productAdapter = new ProductAdapter(productList);
+
+        // Set click listener
+        productAdapter.setOnProductClickListener(product -> {
+            Log.d(TAG, "📱 Product clicked: " + product.getProductName());
+            navigateToProductDetail(product.getProductId());
+        });
+
         rvProducts.setAdapter(productAdapter);
         
         Log.d(TAG, "   Adapter set. getItemCount: " + productAdapter.getItemCount());
+    }
+
+    private void navigateToProductDetail(String productId) {
+        Log.d(TAG, "🔀 Navigating to ProductDetailFragment for product: " + productId);
+
+        // Hide ViewPager and show fragment container
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+
+        // Create and navigate to ProductDetailFragment
+        ProductDetailFragment detailFragment = ProductDetailFragment.newInstance(productId);
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, detailFragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     /**
