@@ -30,9 +30,19 @@ public class AddressAdapter extends RecyclerView.Adapter<AddressAdapter.AddressV
 
     public AddressAdapter(List<Address> addressList) {
         this.addressList = addressList;
-        // Mặc định chọn địa chỉ default nếu có
+        updateSelectedPosition();
+    }
+
+    public void updateData(List<Address> newList) {
+        this.addressList = newList;
+        updateSelectedPosition();
+        notifyDataSetChanged();
+    }
+
+    private void updateSelectedPosition() {
+        if (addressList == null) return;
         for (int i = 0; i < addressList.size(); i++) {
-            if (addressList.get(i).getIsDefault() != null && addressList.get(i).getIsDefault()) {
+            if (Boolean.TRUE.equals(addressList.get(i).getIsDefault())) {
                 selectedPosition = i;
                 break;
             }

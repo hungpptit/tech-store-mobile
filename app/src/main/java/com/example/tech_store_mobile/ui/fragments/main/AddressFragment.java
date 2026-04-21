@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -18,10 +19,13 @@ import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.AddressAdapter;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AddressFragment extends Fragment {
     private static final String TAG = "AddressFragment";
@@ -47,15 +51,14 @@ public class AddressFragment extends Fragment {
         loadAddresses();
 
         view.findViewById(R.id.btn_back_address).setOnClickListener(v -> requireActivity().onBackPressed());
+
+        // Xử lý khi bấm vào nút Add New Address
+        view.findViewById(R.id.btn_add_new_address).setOnClickListener(v -> {
+            replaceFragment(new AddAddressFragment());
+        });
         
         view.findViewById(R.id.btn_apply_address).setOnClickListener(v -> {
-            Address selected = addressAdapter.getSelectedAddress();
-            if (selected != null) {
-                // Xử lý khi chọn địa chỉ và nhấn Apply (ví dụ: quay về màn hình Checkout)
-                Toast.makeText(getContext(), "Selected: " + selected.getNickname(), Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getContext(), "Please select an address", Toast.LENGTH_SHORT).show();
-            }
+            handleApplyAddress();
         });
 
         return view;
@@ -68,8 +71,7 @@ public class AddressFragment extends Fragment {
     }
 
     private void loadAddresses() {
-        String userId = mAuth.getUid();
-        if (userId == null) return;
+        String userId = "user_001"; // Sử dụng ID tĩnh để test đồng bộ
 
         db.collection("addresses")
                 .whereEqualTo("userId", userId)
@@ -77,12 +79,63 @@ public class AddressFragment extends Fragment {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     addressList.clear();
                     addressList.addAll(queryDocumentSnapshots.toObjects(Address.class));
-                    addressAdapter.notifyDataSetChanged();
+                    addressAdapter.updateData(addressList);
                     Log.d(TAG, "Loaded " + addressList.size() + " addresses");
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading addresses", e);
                     Toast.makeText(getContext(), "Failed to load addresses", Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void handleApplyAddress() {
+        Address selectedAddress = addressAdapter.getSelectedAddress();
+        if (selectedAddress == null) {
+            Toast.makeText(getContext(), "Please select an address", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Nếu đã là mặc định thì không cần cập nhật DB
+        if (Boolean.TRUE.equals(selectedAddress.getIsDefault())) {
+            requireActivity().onBackPressed();
+            return;
+        }
+
+        String userId = "user_001";
+        
+        db.collection("addresses")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isDefault", true)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    WriteBatch batch = db.batch();
+
+                    // 1. Tắt mặc định cũ
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
+                        batch.update(doc.getReference(), "isDefault", false);
+                    }
+
+                    // 2. Bật mặc định mới
+                    batch.update(db.collection("addresses").document(selectedAddress.getAddressId()), "isDefault", true);
+
+                    // 3. Cập nhật User Profile
+                    Map<String, Object> userUpdate = new HashMap<>();
+                    userUpdate.put("defaultAddressId", selectedAddress.getAddressId());
+                    batch.set(db.collection("users").document(userId), userUpdate, SetOptions.merge());
+
+                    batch.commit().addOnSuccessListener(aVoid -> {
+                        Toast.makeText(getContext(), "Default address updated to: " + selectedAddress.getNickname(), Toast.LENGTH_SHORT).show();
+                        requireActivity().onBackPressed();
+                    }).addOnFailureListener(e -> {
+                        Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+                });
+    }
+
+    private void replaceFragment(Fragment fragment) {
+        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        transaction.replace(R.id.fragment_container, fragment);
+        transaction.addToBackStack(null);
+        transaction.commit();
     }
 }

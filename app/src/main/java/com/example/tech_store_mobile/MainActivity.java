@@ -112,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+<<<<<<< HEAD
 
         // 5. Handle back press using AndroidX OnBackPressedDispatcher
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -120,6 +121,17 @@ public class MainActivity extends AppCompatActivity {
                 handleBackPress();
             }
         });
+=======
+//
+//        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
+//            if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+//                // Hiện lại mọi thứ khi quay về màn hình chính
+//                findViewById(R.id.fragment_container).setVisibility(View.GONE);
+//                findViewById(R.id.view_pager).setVisibility(View.VISIBLE);
+//                findViewById(R.id.bottom_navigation).setVisibility(View.VISIBLE); // HIỆN LẠI THANH MENU
+//            }
+//        });
+>>>>>>> origin/QuyCoding
     }
 
     // Handle back press logic
