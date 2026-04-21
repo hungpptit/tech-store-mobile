@@ -2,6 +2,11 @@
     <string name="app_name">Tech-Store-Mobile</string>
     <string name="back">Back</string>
     <string name="category">Category</string>
+    <string name="notifications">Notifications</string>
+    <string name="review_rating_placeholder">4.0</string>
+    <string name="review_stars_placeholder">★★★★☆</string>
+    <string name="review_count_placeholder">1034 Ratings</string>
+    <string name="review_sort_most_relevant">Most Relevant</string>
     <string name="product_image">Product image</string>
     <string name="product_favorite">Add to favorites</string>
     <string name="sample_product_name">AirPods Pro</string>

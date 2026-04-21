@@ -1,6 +1,5 @@
 package com.example.tech_store_mobile;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -90,6 +89,12 @@ public class MainActivity extends AppCompatActivity {
         getSupportFragmentManager().addOnBackStackChangedListener(() -> {
             Log.d(TAG, "🔄 Back stack changed - back stack count: " + getSupportFragmentManager().getBackStackEntryCount());
 
+            if (mBottomNavigationView != null) {
+                mBottomNavigationView.setVisibility(getSupportFragmentManager().getBackStackEntryCount() == 0
+                        ? View.VISIBLE
+                        : View.GONE);
+            }
+
             // Khi back stack trống (tất cả fragments đã pop), reload HomeFragment
             if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
                 Log.d(TAG, "   All fragments popped - reloading HomeFragment data");
@@ -117,9 +122,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Handle back press logic
-     */
+    // Handle back press logic
     private void handleBackPress() {
         // Check xem có fragments trong back stack không
         if (getSupportFragmentManager().getBackStackEntryCount() > 0) {

@@ -137,6 +137,8 @@ public class ReviewFragment extends Fragment {
         Log.d(TAG, "🔧 setupRecyclerView called");
 
         rvReviews.setLayoutManager(new LinearLayoutManager(getContext()));
+        rvReviews.setNestedScrollingEnabled(false);
+        rvReviews.setHasFixedSize(false);
         reviewAdapter = new ReviewAdapter(reviewList);
         rvReviews.setAdapter(reviewAdapter);
 
@@ -224,7 +226,7 @@ public class ReviewFragment extends Fragment {
 
     private View createRatingBar(int stars, int count, int total) {
         View ratingBarView = LayoutInflater.from(requireContext())
-                .inflate(R.layout.item_rating_bar, null, false);
+                .inflate(R.layout.item_rating_bar, llRatingBreakdown, false);
 
         // Set stars (★ for filled, ☆ for empty)
         TextView tvStars = ratingBarView.findViewById(R.id.tvStarRating);
@@ -257,23 +259,25 @@ public class ReviewFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Hide bottom navigation
-        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
-        if (bottomNav != null) {
-            bottomNav.setVisibility(View.GONE);
-            Log.d(TAG, "✅ Bottom navigation hidden");
-        }
+        hideBottomNavigation();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        hideBottomNavigation();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+    }
 
-        // Show bottom navigation when returning
+    private void hideBottomNavigation() {
         View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
         if (bottomNav != null) {
-            bottomNav.setVisibility(View.VISIBLE);
-            Log.d(TAG, "✅ Bottom navigation shown");
+            bottomNav.setVisibility(View.GONE);
+            Log.d(TAG, "✅ Bottom navigation hidden");
         }
     }
 }

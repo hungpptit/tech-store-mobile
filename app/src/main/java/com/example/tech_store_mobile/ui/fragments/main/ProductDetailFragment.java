@@ -108,13 +108,6 @@ public class ProductDetailFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-
-        // Show bottom navigation menu when returning
-        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
-        if (bottomNav != null) {
-            bottomNav.setVisibility(View.VISIBLE);
-            Log.d(TAG, "✅ Bottom navigation shown");
-        }
     }
 
     private void initializeViews(View view) {
