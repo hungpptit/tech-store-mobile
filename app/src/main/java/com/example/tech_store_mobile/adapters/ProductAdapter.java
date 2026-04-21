@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.RatingFormatUtil;
 
 import java.util.List;
 import java.util.Locale;
@@ -54,7 +55,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
                  R.string.product_price_format,
                  String.format(Locale.getDefault(), "%.2f", product.getFinalPrice())
          ));
-         holder.tvRating.setText(String.valueOf(product.getRating()));
+         holder.tvRating.setText(RatingFormatUtil.formatRating(product.getRating()));
 
         // Load ảnh từ Firebase URL bằng Glide
         // Nếu imageUrl trống hoặc null → luôn dùng placeholder

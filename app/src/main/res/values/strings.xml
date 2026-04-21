@@ -7,6 +7,12 @@
     <string name="sample_product_name">AirPods Pro</string>
     <string name="sample_product_price">$ 249.00</string>
     <string name="sample_product_rating">5.0</string>
+    <string name="reviews_title">Reviews</string>
+    <plurals name="review_count">
+        <item quantity="one">%d Review</item>
+        <item quantity="other">%d Reviews</item>
+    </plurals>
+    <string name="review_comment_summary_format">%1$d Reviews · %2$d Comments</string>
     <string name="product_price_format">$ %1$s</string>
     <string name="nav_home">Home</string>
     <string name="nav_search">Search</string>

@@ -18,8 +18,13 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.Color;
 import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.Model.Product;
+import com.example.tech_store_mobile.Model.Review;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.RatingFormatUtil;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.List;
+import java.util.Locale;
 
 /**
  * ProductDetailFragment - Hiển thị chi tiết sản phẩm
@@ -175,6 +180,31 @@ public class ProductDetailFragment extends Fragment {
             Toast.makeText(requireContext(), "Added to cart! Color: " + selectedColor, Toast.LENGTH_SHORT).show();
             // TODO: Implement add to cart logic
         });
+
+        // Review count click
+        tvReviewCount.setOnClickListener(v -> {
+            Log.d(TAG, "📝 Review count clicked - navigating to ReviewFragment");
+            if (product != null) {
+                navigateToReviewFragment();
+            }
+        });
+    }
+
+    private void navigateToReviewFragment() {
+        Log.d(TAG, "🔀 Navigating to ReviewFragment for product: " + productId);
+
+        ReviewFragment reviewFragment = ReviewFragment.newInstance(
+                productId,
+                product.getProductName(),
+                product.getRating(),
+                product.getReviewCount()
+        );
+
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, reviewFragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void loadProductData() {
@@ -186,7 +216,8 @@ public class ProductDetailFragment extends Fragment {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         product = documentSnapshot.toObject(Product.class);
-                        Log.d(TAG, "✅ Product loaded: " + product.getProductName());
+                        String productName = product != null ? product.getProductName() : null;
+                        Log.d(TAG, "✅ Product loaded: " + (productName != null ? productName : "<unknown>"));
                         displayProductData();
                     } else {
                         Log.e(TAG, "❌ Product not found: " + productId);
@@ -209,12 +240,8 @@ public class ProductDetailFragment extends Fragment {
         tvBrand.setText(product.getBrand());
 
         // Price
-        String priceText = String.format("$ %.2f", product.getFinalPrice());
+        String priceText = String.format(Locale.getDefault(), "$ %.2f", product.getFinalPrice());
         tvPrice.setText(priceText);
-
-        // Rating & Review Count
-        tvRating.setText(String.format("%.1f/5 ", product.getRating()));
-        tvReviewCount.setText(String.format("(%d reviews)", product.getReviewCount()));
 
         // Description
         tvDescription.setText(product.getDescription());
@@ -228,8 +255,51 @@ public class ProductDetailFragment extends Fragment {
                     .into(ivProductImage);
         }
 
+        // Load actual ratings from reviews collection
+        loadActualRatings();
+
         // Colors
         setupColorPicker();
+    }
+
+    private void loadActualRatings() {
+        db.collection("reviews")
+                .whereEqualTo("productId", productId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!isAdded()) return;
+
+                    List<Review> reviews = querySnapshot.toObjects(Review.class);
+                    long reviewCount = reviews.size();
+
+                    // Calculate average rating
+                    double totalRating = 0;
+                    long validRatingCount = 0;
+                    for (Review review : reviews) {
+                        if (review.getRating() != null) {
+                            totalRating += review.getRating();
+                            validRatingCount++;
+                        }
+                    }
+                    double avgRating = validRatingCount > 0 ? totalRating / validRatingCount : 0;
+                    avgRating = RatingFormatUtil.roundToTenth(avgRating);
+
+                    Log.d(TAG, "✅ Actual ratings loaded: " + reviewCount + " reviews, avg: " + avgRating);
+
+                    // Update UI with actual values
+                    tvRating.setText(RatingFormatUtil.formatRatingWithSuffix(avgRating, "/5 "));
+                    tvReviewCount.setText(String.format(Locale.getDefault(), "(%d reviews)", reviewCount));
+
+                    // Update product object for ReviewFragment
+                    product.setRating(avgRating);
+                    product.setReviewCount(reviewCount);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading reviews", e);
+                    // Fallback to product's stored values
+                    tvRating.setText(RatingFormatUtil.formatRatingWithSuffix(product.getRating(), "/5 "));
+                    tvReviewCount.setText(String.format(Locale.getDefault(), "(%d reviews)", product.getReviewCount()));
+                });
     }
 
     private void setupColorPicker() {
