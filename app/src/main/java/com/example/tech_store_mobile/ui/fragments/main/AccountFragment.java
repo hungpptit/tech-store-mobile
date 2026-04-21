@@ -37,7 +37,7 @@ public class AccountFragment extends Fragment {
         setupMenuItem(view.findViewById(R.id.item_my_details), "My Details", R.drawable.details);
 
         // 3. Address Book
-        setupMenuItem(view.findViewById(R.id.item_address_book), "Address Book", R.drawable.address);
+        setupMenuItem(view.findViewById(R.id.item_address_book), "Address", R.drawable.address);
 
         // 4. Payment Methods
         setupMenuItem(view.findViewById(R.id.item_payment_methods), "Payment Methods", R.drawable.card);
