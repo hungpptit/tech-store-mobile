@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.adapters.ProductAdapter;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -118,6 +119,9 @@ public class ProductListFragment extends Fragment {
 
                         if (viewPager != null) viewPager.setVisibility(View.VISIBLE);
                         if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
+                        if (requireActivity() instanceof MainActivity) {
+                            ((MainActivity) requireActivity()).syncBottomNavigationVisibility();
+                        }
 
                         Log.d(TAG, "   ViewPager visibility restored");
                     } else {

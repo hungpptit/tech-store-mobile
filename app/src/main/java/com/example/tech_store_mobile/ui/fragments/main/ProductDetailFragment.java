@@ -20,6 +20,7 @@ import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.Model.Review;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.utils.RatingFormatUtil;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -136,21 +137,25 @@ public class ProductDetailFragment extends Fragment {
         btnBack.setOnClickListener(v -> {
             Log.d(TAG, "🔙 Back button clicked from ProductDetail");
             if (isAdded()) {
-                // Show bottom navigation immediately
-                View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
-                if (bottomNav != null) {
-                    bottomNav.setVisibility(View.VISIBLE);
-                }
-
                 requireActivity().getSupportFragmentManager().popBackStack();
 
                 v.postDelayed(() -> {
                     if (isAdded()) {
                         View viewPager = requireActivity().findViewById(R.id.view_pager);
                         View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+                        boolean hasFragment = requireActivity().getSupportFragmentManager().findFragmentById(R.id.fragment_container) != null;
 
-                        if (viewPager != null) viewPager.setVisibility(View.VISIBLE);
-                        if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
+                        if (hasFragment) {
+                            if (viewPager != null) viewPager.setVisibility(View.GONE);
+                            if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+                        } else {
+                            if (viewPager != null) viewPager.setVisibility(View.VISIBLE);
+                            if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
+                        }
+
+                        if (requireActivity() instanceof MainActivity) {
+                            ((MainActivity) requireActivity()).syncBottomNavigationVisibility();
+                        }
                     }
                 }, 100);
             }
@@ -281,7 +286,7 @@ public class ProductDetailFragment extends Fragment {
 
                     // Update UI with actual values
                     tvRating.setText(RatingFormatUtil.formatRatingWithSuffix(avgRating, "/5 "));
-                    tvReviewCount.setText(String.format(Locale.getDefault(), "(%d reviews)", reviewCount));
+                    tvReviewCount.setText(getString(R.string.product_rating_count_format, reviewCount));
 
                     // Update product object for ReviewFragment
                     product.setRating(avgRating);
@@ -291,7 +296,7 @@ public class ProductDetailFragment extends Fragment {
                     Log.e(TAG, "Error loading reviews", e);
                     // Fallback to product's stored values
                     tvRating.setText(RatingFormatUtil.formatRatingWithSuffix(product.getRating(), "/5 "));
-                    tvReviewCount.setText(String.format(Locale.getDefault(), "(%d reviews)", product.getReviewCount()));
+                    tvReviewCount.setText(getString(R.string.product_rating_count_format, product.getReviewCount()));
                 });
     }
 

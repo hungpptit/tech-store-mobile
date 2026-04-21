@@ -7,6 +7,15 @@
     <string name="review_stars_placeholder">★★★★☆</string>
     <string name="review_count_placeholder">1034 Ratings</string>
     <string name="review_sort_most_relevant">Most Relevant</string>
+    <string-array name="review_filter_options">
+        <item>All</item>
+        <item>Only comments</item>
+        <item>5 stars</item>
+        <item>4 stars</item>
+        <item>3 stars</item>
+        <item>2 stars</item>
+        <item>1 star</item>
+    </string-array>
     <string name="product_image">Product image</string>
     <string name="product_favorite">Add to favorites</string>
     <string name="sample_product_name">AirPods Pro</string>
@@ -14,10 +23,11 @@
     <string name="sample_product_rating">5.0</string>
     <string name="reviews_title">Reviews</string>
     <plurals name="review_count">
-        <item quantity="one">%d Review</item>
-        <item quantity="other">%d Reviews</item>
+        <item quantity="one">%d Rating</item>
+        <item quantity="other">%d Ratings</item>
     </plurals>
     <string name="review_comment_summary_format">%1$d Reviews · %2$d Comments</string>
+    <string name="product_rating_count_format">(%1$d ratings)</string>
     <string name="product_price_format">$ %1$s</string>
     <string name="nav_home">Home</string>
     <string name="nav_search">Search</string>

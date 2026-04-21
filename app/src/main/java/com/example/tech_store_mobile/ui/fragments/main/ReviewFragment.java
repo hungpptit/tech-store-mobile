@@ -5,9 +5,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.FrameLayout;
+import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.tech_store_mobile.Model.Review;
+import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.ReviewAdapter;
 import com.example.tech_store_mobile.utils.RatingFormatUtil;
@@ -45,6 +48,7 @@ public class ReviewFragment extends Fragment {
     // Views
     private ImageView btnBack;
     private TextView tvTitle, tvRating, tvReviewCount, tvReviewStats;
+    private AutoCompleteTextView spnReviewFilter;
     private RecyclerView rvReviews;
     private LinearLayout llRatingBreakdown;
 
@@ -55,8 +59,10 @@ public class ReviewFragment extends Fragment {
     private String productId, productName;
     private Double rating;
     private Long reviewCount;
-    private List<Review> reviewList;
+    private final List<Review> allReviewList = new ArrayList<>();
+    private final List<Review> reviewList = new ArrayList<>();
     private ReviewAdapter reviewAdapter;
+    private int selectedFilterPosition = 0;
 
     public ReviewFragment() {
     }
@@ -97,9 +103,6 @@ public class ReviewFragment extends Fragment {
         // Init Firebase
         db = FirebaseFirestore.getInstance();
 
-        // Init data list
-        reviewList = new ArrayList<>();
-
         // Map Views
         initializeViews(view);
 
@@ -114,6 +117,11 @@ public class ReviewFragment extends Fragment {
             Log.d(TAG, "🔙 Back button clicked");
             if (isAdded()) {
                 requireActivity().getSupportFragmentManager().popBackStack();
+                v.postDelayed(() -> {
+                    if (isAdded() && requireActivity() instanceof MainActivity) {
+                        ((MainActivity) requireActivity()).syncBottomNavigationVisibility();
+                    }
+                }, 100);
             }
         });
 
@@ -126,11 +134,28 @@ public class ReviewFragment extends Fragment {
         tvRating = view.findViewById(R.id.tvRating);
         tvReviewCount = view.findViewById(R.id.tvReviewCount);
         tvReviewStats = view.findViewById(R.id.tvReviewStats);
+        spnReviewFilter = view.findViewById(R.id.spnReviewFilter);
         rvReviews = view.findViewById(R.id.rvReviews);
         llRatingBreakdown = view.findViewById(R.id.llRatingBreakdown);
 
         // Set title
         tvTitle.setText(R.string.reviews_title);
+
+        setupReviewFilter();
+    }
+
+    private void setupReviewFilter() {
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                requireContext(),
+                R.array.review_filter_options,
+                android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(R.layout.item_review_filter_dropdown);
+        spnReviewFilter.setAdapter(adapter);
+        spnReviewFilter.setText(adapter.getItem(0), false);
+        spnReviewFilter.setOnItemClickListener((parent, view, position, id) -> {
+            selectedFilterPosition = position;
+            applyReviewFilter();
+        });
     }
 
     private void setupRecyclerView() {
@@ -153,8 +178,8 @@ public class ReviewFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<Review> reviews = querySnapshot.toObjects(Review.class);
-                    reviewList.clear();
-                    reviewList.addAll(reviews);
+                    allReviewList.clear();
+                    allReviewList.addAll(reviews);
                     long commentCount = countComments(reviews);
 
                     Log.d(TAG, "✅ Reviews loaded: " + reviews.size());
@@ -173,8 +198,8 @@ public class ReviewFragment extends Fragment {
                     // Build rating breakdown
                     buildRatingBreakdown(reviews);
 
-                    // Update adapter
-                    reviewAdapter.notifyDataSetChanged();
+                    // Update adapter with current filter
+                    applyReviewFilter();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Error loading reviews", e);
@@ -188,7 +213,51 @@ public class ReviewFragment extends Fragment {
                             R.string.review_comment_summary_format,
                             safeReviewCount,
                             0L));
+                    allReviewList.clear();
+                    applyReviewFilter();
                 });
+    }
+
+    private void applyReviewFilter() {
+        reviewList.clear();
+
+        for (Review review : allReviewList) {
+            if (matchesCurrentFilter(review)) {
+                reviewList.add(review);
+            }
+        }
+
+        if (reviewAdapter != null) {
+            reviewAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private boolean matchesCurrentFilter(Review review) {
+        if (review == null) {
+            return false;
+        }
+
+        switch (selectedFilterPosition) {
+            case 1:
+                return review.getComment() != null && !review.getComment().trim().isEmpty();
+            case 2:
+                return hasExactStar(review, 5);
+            case 3:
+                return hasExactStar(review, 4);
+            case 4:
+                return hasExactStar(review, 3);
+            case 5:
+                return hasExactStar(review, 2);
+            case 6:
+                return hasExactStar(review, 1);
+            case 0:
+            default:
+                return true;
+        }
+    }
+
+    private boolean hasExactStar(Review review, int stars) {
+        return review.getRating() != null && Math.round(review.getRating().floatValue()) == stars;
     }
 
     private long countComments(List<Review> reviews) {

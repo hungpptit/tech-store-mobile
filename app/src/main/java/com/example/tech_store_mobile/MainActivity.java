@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
             // Show ViewPager again and hide fragment container
             mViewPager.setVisibility(View.VISIBLE);
             findViewById(R.id.fragment_container).setVisibility(View.GONE);
+            syncBottomNavigationVisibility();
 
             // Switch ViewPager page
             if (id == R.id.nav_home) mViewPager.setCurrentItem(0);
@@ -88,12 +89,7 @@ public class MainActivity extends AppCompatActivity {
         // 4. Listen for back stack changes to reload HomeFragment when returning
         getSupportFragmentManager().addOnBackStackChangedListener(() -> {
             Log.d(TAG, "🔄 Back stack changed - back stack count: " + getSupportFragmentManager().getBackStackEntryCount());
-
-            if (mBottomNavigationView != null) {
-                mBottomNavigationView.setVisibility(getSupportFragmentManager().getBackStackEntryCount() == 0
-                        ? View.VISIBLE
-                        : View.GONE);
-            }
+            syncBottomNavigationVisibility();
 
             // Khi back stack trống (tất cả fragments đã pop), reload HomeFragment
             if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
@@ -102,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 // Show ViewPager again
                 mViewPager.setVisibility(View.VISIBLE);
                 findViewById(R.id.fragment_container).setVisibility(View.GONE);
+                syncBottomNavigationVisibility();
 
                 // Trigger HomeFragment reload by finding it and calling reload
                 HomeFragment homeFragment = (HomeFragment) getSupportFragmentManager()
@@ -112,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-<<<<<<< HEAD
 
         // 5. Handle back press using AndroidX OnBackPressedDispatcher
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -121,17 +117,6 @@ public class MainActivity extends AppCompatActivity {
                 handleBackPress();
             }
         });
-=======
-//
-//        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
-//            if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
-//                // Hiện lại mọi thứ khi quay về màn hình chính
-//                findViewById(R.id.fragment_container).setVisibility(View.GONE);
-//                findViewById(R.id.view_pager).setVisibility(View.VISIBLE);
-//                findViewById(R.id.bottom_navigation).setVisibility(View.VISIBLE); // HIỆN LẠI THANH MENU
-//            }
-//        });
->>>>>>> origin/QuyCoding
     }
 
     // Handle back press logic
@@ -164,6 +149,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    public void syncBottomNavigationVisibility() {
+        if (mBottomNavigationView == null) {
+            return;
+        }
+
+        View fragmentContainer = findViewById(R.id.fragment_container);
+        boolean showBottomNavigation = fragmentContainer == null || fragmentContainer.getVisibility() != View.VISIBLE;
+        mBottomNavigationView.setVisibility(showBottomNavigation ? View.VISIBLE : View.GONE);
     }
 
     /**
