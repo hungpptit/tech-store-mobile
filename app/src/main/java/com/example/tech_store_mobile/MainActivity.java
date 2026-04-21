@@ -91,6 +91,15 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
+            if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+                // Hiện lại mọi thứ khi quay về màn hình chính
+                findViewById(R.id.fragment_container).setVisibility(View.GONE);
+                findViewById(R.id.view_pager).setVisibility(View.VISIBLE);
+                findViewById(R.id.bottom_navigation).setVisibility(View.VISIBLE); // HIỆN LẠI THANH MENU
+            }
+        });
     }
 
     /**
