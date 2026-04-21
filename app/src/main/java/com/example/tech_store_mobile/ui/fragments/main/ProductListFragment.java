@@ -150,6 +150,7 @@ public class ProductListFragment extends Fragment {
         Log.d(TAG, "   Adapter set. getItemCount: " + productAdapter.getItemCount());
     }
 
+
     private void navigateToProductDetail(String productId) {
         Log.d(TAG, "🔀 Navigating to ProductDetailFragment for product: " + productId);
 

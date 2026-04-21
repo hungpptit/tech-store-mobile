@@ -4,7 +4,9 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.ViewPager;
@@ -18,6 +20,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private ViewPager mViewPager;
     private BottomNavigationView mBottomNavigationView;
+    private long lastBackPressedTime = 0;
+    private static final long BACK_PRESS_INTERVAL = 2000; // 2 seconds
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +46,18 @@ public class MainActivity extends AppCompatActivity {
         // 2. Khi bấm vào Menu -> Chuyển trang ViewPager
         mBottomNavigationView.setOnNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
+
+            // Pop all fragments from back stack first (để quay về ViewPager)
+            if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                Log.d(TAG, "   Popping " + getSupportFragmentManager().getBackStackEntryCount() + " fragments from back stack");
+                getSupportFragmentManager().popBackStack(null, getSupportFragmentManager().POP_BACK_STACK_INCLUSIVE);
+            }
+
+            // Show ViewPager again and hide fragment container
+            mViewPager.setVisibility(View.VISIBLE);
+            findViewById(R.id.fragment_container).setVisibility(View.GONE);
+
+            // Switch ViewPager page
             if (id == R.id.nav_home) mViewPager.setCurrentItem(0);
             else if (id == R.id.nav_search) mViewPager.setCurrentItem(1);
             else if (id == R.id.nav_saved) mViewPager.setCurrentItem(2);
@@ -91,6 +107,48 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        // 5. Handle back press using AndroidX OnBackPressedDispatcher
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleBackPress();
+            }
+        });
+    }
+
+    /**
+     * Handle back press logic
+     */
+    private void handleBackPress() {
+        // Check xem có fragments trong back stack không
+        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+            Log.d(TAG, "🔙 Back pressed - back stack not empty, popping fragment");
+            getSupportFragmentManager().popBackStack();
+        } else {
+            // Back stack trống, check xem có ở Home tab không
+            int currentPage = mViewPager.getCurrentItem();
+            if (currentPage != 0) {
+                // Không ở Home, chuyển về Home
+                Log.d(TAG, "🔙 Back pressed - not on Home page, switching to Home (page 0)");
+                mViewPager.setCurrentItem(0);
+                mBottomNavigationView.getMenu().findItem(R.id.nav_home).setChecked(true);
+                lastBackPressedTime = 0; // Reset timer
+            } else {
+                // Ở Home tab
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastBackPressedTime < BACK_PRESS_INTERVAL) {
+                    // Back 2 lần trong 2 giây, thoát app
+                    Log.d(TAG, "🔙 Back pressed twice - exiting app");
+                    getOnBackPressedDispatcher().onBackPressed();
+                } else {
+                    // Back lần 1, show toast
+                    Log.d(TAG, "🔙 Back pressed once on Home - press again to exit");
+                    Toast.makeText(this, "Bấm lại để thoát", Toast.LENGTH_SHORT).show();
+                    lastBackPressedTime = currentTime;
+                }
+            }
+        }
     }
 
     /**
