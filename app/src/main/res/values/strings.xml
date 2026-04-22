@@ -22,6 +22,17 @@
     <string name="sample_product_price">$ 249.00</string>
     <string name="sample_product_rating">5.0</string>
     <string name="reviews_title">Reviews</string>
+    <string name="cart_title">My Cart</string>
+    <string name="cart_delete_item">Delete item</string>
+    <string name="cart_quantity_decrease">Decrease quantity</string>
+    <string name="cart_quantity_increase">Increase quantity</string>
+    <string name="cart_empty_title">Your Cart Is Empty!</string>
+    <string name="cart_empty_message">When you add products, they’ll appear here.</string>
+    <string name="cart_subtotal">Sub-total</string>
+    <string name="cart_vat">VAT (%)</string>
+    <string name="cart_shipping_fee">Shipping fee</string>
+    <string name="cart_total">Total</string>
+    <string name="cart_checkout">Go To Checkout</string>
     <plurals name="review_count">
         <item quantity="one">%d Rating</item>
         <item quantity="other">%d Ratings</item>
