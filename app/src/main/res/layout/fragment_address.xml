@@ -76,7 +76,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="16dp"
-                android:background="@drawable/bg_add_address"
+                android:background="@drawable/bg_button_white"
                 android:text="Add New Address"
                 android:textAllCaps="false"
                 android:textColor="#000000"

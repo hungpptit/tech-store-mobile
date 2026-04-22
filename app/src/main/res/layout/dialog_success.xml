@@ -17,7 +17,7 @@
         <ImageView
             android:layout_width="80dp"
             android:layout_height="80dp"
-            android:src="@android:drawable/checkbox_on_background"
+            android:src="@drawable/outline_check_24"
             app:tint="#4CAF50" />
 
         <TextView
@@ -43,7 +43,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="24dp"
-            android:background="@android:color/black"
+            android:background="@drawable/bg_button_black"
             android:text="Thanks"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
