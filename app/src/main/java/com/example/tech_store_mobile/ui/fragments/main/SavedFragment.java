@@ -1,66 +1,98 @@
 package com.example.tech_store_mobile.ui.fragments.main;
 
-import android.os.Bundle;
-
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.tech_store_mobile.Model.Product;
+import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.adapters.ProductAdapter;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link SavedFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import java.util.ArrayList;
+import java.util.List;
+
 public class SavedFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private ImageView btnBack;
+    private RecyclerView rvSaved;
+    private View emptyStateContainer;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    private final List<Product> savedProducts = new ArrayList<>();
+    private ProductAdapter savedAdapter;
 
     public SavedFragment() {
-        // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment SavedFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static SavedFragment newInstance(String param1, String param2) {
-        SavedFragment fragment = new SavedFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
+    @Nullable
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable android.os.Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_saved, container, false);
+
+        initializeViews(view);
+        setupRecyclerView();
+        loadFakeSavedItems();
+        setupBackAction();
+
+        return view;
+    }
+
+    private void initializeViews(View view) {
+        btnBack = view.findViewById(R.id.btnBack);
+        ImageView btnNotification = view.findViewById(R.id.btnNotification);
+        TextView tvTitle = view.findViewById(R.id.tvTitle);
+        rvSaved = view.findViewById(R.id.rvSaved);
+        emptyStateContainer = view.findViewById(R.id.emptyStateContainer);
+
+        tvTitle.setText(R.string.saved_title);
+        if (btnNotification != null) {
+            btnNotification.setVisibility(View.VISIBLE);
         }
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_saved, container, false);
+    private void setupRecyclerView() {
+        rvSaved.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        rvSaved.setNestedScrollingEnabled(true);
+        savedAdapter = new ProductAdapter(savedProducts, true);
+        rvSaved.setAdapter(savedAdapter);
+    }
+
+    private void loadFakeSavedItems() {
+        savedProducts.clear();
+        savedProducts.add(new Product("saved_001", "laptop", "MacBook Pro M4", "Apple", "", 2499.00, 18.0, 2049.18, null, "", 5.0, 125L, 10L, true, true, null));
+        savedProducts.add(new Product("saved_002", "audio", "AirPods Pro", "Apple", "", 249.00, 15.0, 211.65, null, "", 4.8, 98L, 32L, true, true, null));
+        savedProducts.add(new Product("saved_003", "watch", "Apple Watch Series", "Apple", "", 399.00, 10.0, 359.10, null, "", 4.9, 76L, 18L, true, false, null));
+
+        savedAdapter.notifyItemRangeInserted(0, savedProducts.size());
+        updateEmptyState();
+    }
+
+    private void updateEmptyState() {
+        boolean hasItems = !savedProducts.isEmpty();
+        rvSaved.setVisibility(hasItems ? View.VISIBLE : View.GONE);
+        emptyStateContainer.setVisibility(hasItems ? View.GONE : View.VISIBLE);
+    }
+
+    private void setupBackAction() {
+        btnBack.setOnClickListener(v -> {
+            if (isAdded()) {
+                if (requireActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                } else if (requireActivity() instanceof MainActivity) {
+                    requireActivity().findViewById(R.id.view_pager).setVisibility(View.VISIBLE);
+                    requireActivity().findViewById(R.id.fragment_container).setVisibility(View.GONE);
+                    ((MainActivity) requireActivity()).syncBottomNavigationVisibility();
+                }
+            }
+        });
     }
 }

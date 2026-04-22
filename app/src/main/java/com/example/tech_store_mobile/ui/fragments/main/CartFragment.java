@@ -54,13 +54,13 @@ public class CartFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        hideBottomNavigation();
+        showBottomNavigation();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        hideBottomNavigation();
+        showBottomNavigation();
     }
 
     @Override
@@ -194,13 +194,6 @@ public class CartFragment extends Fragment {
         });
     }
 
-    private void hideBottomNavigation() {
-        if (getActivity() == null) return;
-        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
-        if (bottomNav != null) {
-            bottomNav.setVisibility(View.GONE);
-        }
-    }
 
     private void showBottomNavigation() {
         if (getActivity() == null) return;
