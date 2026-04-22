@@ -6,13 +6,13 @@
     android:layout_height="match_parent"
     android:background="#FFFFFF">
 
-    <!-- Scrollable Content Area -->
+    <!-- Scrollable Content -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:fillViewport="true"
         android:padding="16dp"
-        app:layout_constraintBottom_toTopOf="@+id/btn_apply_address"
+        app:layout_constraintBottom_toTopOf="@+id/btn_apply_payment"
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
@@ -20,6 +20,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- Toolbar đồng bộ với Account/Address -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -27,7 +28,7 @@
                 android:layout_marginBottom="20dp">
 
                 <ImageView
-                    android:id="@+id/btn_back_address"
+                    android:id="@+id/btn_back_payment"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_alignParentStart="true"
@@ -38,13 +39,13 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
-                    android:text="Address"
+                    android:text="Payment Method"
                     android:textColor="@android:color/black"
                     android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <ImageView
-                    android:id="@+id/btn_notification_address"
+                    android:id="@+id/btn_notification_payment"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_alignParentEnd="true"
@@ -57,27 +58,30 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:text="Saved Address"
+                android:text="Saved Cards"
                 android:textColor="#000000"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <!-- Address List -->
+            <!-- Payment List -->
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_addresses"
+                android:id="@+id/rv_payment_methods"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
-                tools:listitem="@layout/item_address" />
+                tools:listitem="@layout/item_payment_method" />
 
-            <!-- Add New Address Button -->
+            <!-- Add New Card Button -->
             <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btn_add_new_address"
+                android:id="@+id/btn_add_new_card"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="16dp"
                 android:background="@drawable/bg_button_white"
-                android:text="Add New Address"
+                android:drawableStart="@drawable/plus"
+                android:drawablePadding="-40dp"
+                android:paddingStart="100dp"
+                android:text="Add New Card"
                 android:textAllCaps="false"
                 android:textColor="#000000"
                 android:textSize="16sp" />
@@ -87,7 +91,7 @@
 
     <!-- Bottom Action Button -->
     <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_apply_address"
+        android:id="@+id/btn_apply_payment"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_margin="16dp"
