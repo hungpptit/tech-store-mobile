@@ -11,10 +11,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.AuthUiHelper;
+import com.google.android.material.button.MaterialButton;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class AccountFragment extends Fragment {
+
+    private View accountContentContainer;
+    private View accountGuestState;
 
     public AccountFragment() {
         // Required empty public constructor
@@ -30,6 +37,14 @@ public class AccountFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        accountContentContainer = view.findViewById(R.id.accountContentContainer);
+        accountGuestState = view.findViewById(R.id.accountGuestState);
+        MaterialButton btnAccountSignIn = view.findViewById(R.id.btnAccountSignIn);
+
+        if (btnAccountSignIn != null) {
+            btnAccountSignIn.setOnClickListener(v -> AuthUiHelper.openLogin(this));
+        }
+
         // 1. My Orders
         setupMenuItem(view.findViewById(R.id.item_my_orders), "My Orders", R.drawable.box);
 
@@ -39,9 +54,9 @@ public class AccountFragment extends Fragment {
         // 3. Address Book
         View addressView = view.findViewById(R.id.item_address_book);
         setupMenuItem(addressView, "Address", R.drawable.address);
-        addressView.setOnClickListener(v -> {
-            replaceFragment(new AddressFragment());
-        });
+        if (addressView != null) {
+            addressView.setOnClickListener(v -> replaceFragment(new AddressFragment()));
+        }
 
         // 4. Payment Methods
         setupMenuItem(view.findViewById(R.id.item_payment_methods), "Payment Methods", R.drawable.card);
@@ -52,28 +67,55 @@ public class AccountFragment extends Fragment {
         // 6. Logout
         View logoutView = view.findViewById(R.id.item_logout);
         setupMenuItem(logoutView, "Logout", R.drawable.logout);
+        if (logoutView != null) {
+            logoutView.setOnClickListener(v -> {
+                FirebaseAuth.getInstance().signOut();
+                renderAuthState();
+                Toast.makeText(requireContext(), R.string.auth_logout_success, Toast.LENGTH_SHORT).show();
+            });
 
-        TextView tvLogout = logoutView.findViewById(R.id.tv_menu_title);
-        tvLogout.setTextColor(android.graphics.Color.RED);
+            TextView tvLogout = logoutView.findViewById(R.id.tv_menu_title);
+            if (tvLogout != null) {
+                tvLogout.setTextColor(android.graphics.Color.RED);
+            }
 
-        ImageView imgLogout = logoutView.findViewById(R.id.img_menu_icon);
-        imgLogout.setColorFilter(android.graphics.Color.RED);
+            ImageView imgLogout = logoutView.findViewById(R.id.img_menu_icon);
+            if (imgLogout != null) {
+                imgLogout.setColorFilter(android.graphics.Color.RED);
+            }
+        }
+
+        renderAuthState();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        renderAuthState();
     }
 
     private void setupMenuItem(View itemView, String title, int iconRes) {
         if (itemView != null) {
             TextView tvTitle = itemView.findViewById(R.id.tv_menu_title);
             ImageView imgIcon = itemView.findViewById(R.id.img_menu_icon);
-            tvTitle.setText(title);
-            imgIcon.setImageResource(iconRes);
+            if (tvTitle != null) {
+                tvTitle.setText(title);
+            }
+            if (imgIcon != null) {
+                imgIcon.setImageResource(iconRes);
+            }
         }
     }
 
     private void replaceFragment(Fragment fragment) {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
         // 1. Tìm các View ở Activity
-        View container = getActivity().findViewById(R.id.fragment_container);
-        View viewPager = getActivity().findViewById(R.id.view_pager);
-        View bottomNav = getActivity().findViewById(R.id.bottom_navigation); // Thêm dòng này
+        View container = requireActivity().findViewById(R.id.fragment_container);
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation); // Thêm dòng này
 
         if (container != null && viewPager != null && bottomNav != null) {
             // 2. Hiện container, ẩn ViewPager và ẩn Bottom Navigation
@@ -87,6 +129,17 @@ public class AccountFragment extends Fragment {
         transaction.replace(R.id.fragment_container, fragment);
         transaction.addToBackStack(null);
         transaction.commit();
+    }
+
+    private void renderAuthState() {
+        boolean loggedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
+
+        if (accountContentContainer != null) {
+            accountContentContainer.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
+        }
+        if (accountGuestState != null) {
+            accountGuestState.setVisibility(loggedIn ? View.GONE : View.VISIBLE);
+        }
     }
 
 }

@@ -21,7 +21,9 @@ import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.Model.Review;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.MainActivity;
+import com.example.tech_store_mobile.utils.AuthUiHelper;
 import com.example.tech_store_mobile.utils.RatingFormatUtil;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.List;
@@ -29,7 +31,6 @@ import java.util.Locale;
 
 /**
  * ProductDetailFragment - Hiển thị chi tiết sản phẩm
- *
  * Arguments:
  * - productId: ID của sản phẩm
  */
@@ -164,6 +165,10 @@ public class ProductDetailFragment extends Fragment {
         // Favorite button
         btnFavorite.setOnClickListener(v -> {
             Log.d(TAG, "❤️ Favorite button clicked");
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                AuthUiHelper.showLoginDialog(this, R.string.login_required_title, R.string.login_required_favorite_message);
+                return;
+            }
             Toast.makeText(requireContext(), "Added to favorites!", Toast.LENGTH_SHORT).show();
             // TODO: Implement add to favorites logic
         });
@@ -171,6 +176,10 @@ public class ProductDetailFragment extends Fragment {
         // Add to cart button
         btnAddToCart.setOnClickListener(v -> {
             Log.d(TAG, "🛒 Add to cart clicked for product: " + productId);
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                AuthUiHelper.showLoginDialog(this, R.string.login_required_title, R.string.login_required_message);
+                return;
+            }
             if (selectedColor.isEmpty()) {
                 Toast.makeText(requireContext(), "Please choose a color", Toast.LENGTH_SHORT).show();
                 return;
@@ -302,7 +311,7 @@ public class ProductDetailFragment extends Fragment {
 
     private void setupColorPicker() {
         if (product.getColors() == null || product.getColors().isEmpty()) {
-            tvChooseColor.setText("No colors available");
+            tvChooseColor.setText(R.string.no_colors_available);
             return;
         }
 
