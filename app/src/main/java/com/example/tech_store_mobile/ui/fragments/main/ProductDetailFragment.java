@@ -18,8 +18,14 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.Color;
 import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.Model.Product;
+import com.example.tech_store_mobile.Model.Review;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.MainActivity;
+import com.example.tech_store_mobile.utils.RatingFormatUtil;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.List;
+import java.util.Locale;
 
 /**
  * ProductDetailFragment - Hiển thị chi tiết sản phẩm
@@ -103,13 +109,6 @@ public class ProductDetailFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-
-        // Show bottom navigation menu when returning
-        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
-        if (bottomNav != null) {
-            bottomNav.setVisibility(View.VISIBLE);
-            Log.d(TAG, "✅ Bottom navigation shown");
-        }
     }
 
     private void initializeViews(View view) {
@@ -138,21 +137,25 @@ public class ProductDetailFragment extends Fragment {
         btnBack.setOnClickListener(v -> {
             Log.d(TAG, "🔙 Back button clicked from ProductDetail");
             if (isAdded()) {
-                // Show bottom navigation immediately
-                View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
-                if (bottomNav != null) {
-                    bottomNav.setVisibility(View.VISIBLE);
-                }
-
                 requireActivity().getSupportFragmentManager().popBackStack();
 
                 v.postDelayed(() -> {
                     if (isAdded()) {
                         View viewPager = requireActivity().findViewById(R.id.view_pager);
                         View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+                        boolean hasFragment = requireActivity().getSupportFragmentManager().findFragmentById(R.id.fragment_container) != null;
 
-                        if (viewPager != null) viewPager.setVisibility(View.VISIBLE);
-                        if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
+                        if (hasFragment) {
+                            if (viewPager != null) viewPager.setVisibility(View.GONE);
+                            if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+                        } else {
+                            if (viewPager != null) viewPager.setVisibility(View.VISIBLE);
+                            if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
+                        }
+
+                        if (requireActivity() instanceof MainActivity) {
+                            ((MainActivity) requireActivity()).syncBottomNavigationVisibility();
+                        }
                     }
                 }, 100);
             }
@@ -175,6 +178,31 @@ public class ProductDetailFragment extends Fragment {
             Toast.makeText(requireContext(), "Added to cart! Color: " + selectedColor, Toast.LENGTH_SHORT).show();
             // TODO: Implement add to cart logic
         });
+
+        // Review count click
+        tvReviewCount.setOnClickListener(v -> {
+            Log.d(TAG, "📝 Review count clicked - navigating to ReviewFragment");
+            if (product != null) {
+                navigateToReviewFragment();
+            }
+        });
+    }
+
+    private void navigateToReviewFragment() {
+        Log.d(TAG, "🔀 Navigating to ReviewFragment for product: " + productId);
+
+        ReviewFragment reviewFragment = ReviewFragment.newInstance(
+                productId,
+                product.getProductName(),
+                product.getRating(),
+                product.getReviewCount()
+        );
+
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, reviewFragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void loadProductData() {
@@ -186,7 +214,8 @@ public class ProductDetailFragment extends Fragment {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         product = documentSnapshot.toObject(Product.class);
-                        Log.d(TAG, "✅ Product loaded: " + product.getProductName());
+                        String productName = product != null ? product.getProductName() : null;
+                        Log.d(TAG, "✅ Product loaded: " + (productName != null ? productName : "<unknown>"));
                         displayProductData();
                     } else {
                         Log.e(TAG, "❌ Product not found: " + productId);
@@ -209,12 +238,8 @@ public class ProductDetailFragment extends Fragment {
         tvBrand.setText(product.getBrand());
 
         // Price
-        String priceText = String.format("$ %.2f", product.getFinalPrice());
+        String priceText = String.format(Locale.getDefault(), "$ %.2f", product.getFinalPrice());
         tvPrice.setText(priceText);
-
-        // Rating & Review Count
-        tvRating.setText(String.format("%.1f/5 ", product.getRating()));
-        tvReviewCount.setText(String.format("(%d reviews)", product.getReviewCount()));
 
         // Description
         tvDescription.setText(product.getDescription());
@@ -228,8 +253,51 @@ public class ProductDetailFragment extends Fragment {
                     .into(ivProductImage);
         }
 
+        // Load actual ratings from reviews collection
+        loadActualRatings();
+
         // Colors
         setupColorPicker();
+    }
+
+    private void loadActualRatings() {
+        db.collection("reviews")
+                .whereEqualTo("productId", productId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!isAdded()) return;
+
+                    List<Review> reviews = querySnapshot.toObjects(Review.class);
+                    long reviewCount = reviews.size();
+
+                    // Calculate average rating
+                    double totalRating = 0;
+                    long validRatingCount = 0;
+                    for (Review review : reviews) {
+                        if (review.getRating() != null) {
+                            totalRating += review.getRating();
+                            validRatingCount++;
+                        }
+                    }
+                    double avgRating = validRatingCount > 0 ? totalRating / validRatingCount : 0;
+                    avgRating = RatingFormatUtil.roundToTenth(avgRating);
+
+                    Log.d(TAG, "✅ Actual ratings loaded: " + reviewCount + " reviews, avg: " + avgRating);
+
+                    // Update UI with actual values
+                    tvRating.setText(RatingFormatUtil.formatRatingWithSuffix(avgRating, "/5 "));
+                    tvReviewCount.setText(getString(R.string.product_rating_count_format, reviewCount));
+
+                    // Update product object for ReviewFragment
+                    product.setRating(avgRating);
+                    product.setReviewCount(reviewCount);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading reviews", e);
+                    // Fallback to product's stored values
+                    tvRating.setText(RatingFormatUtil.formatRatingWithSuffix(product.getRating(), "/5 "));
+                    tvReviewCount.setText(getString(R.string.product_rating_count_format, product.getReviewCount()));
+                });
     }
 
     private void setupColorPicker() {
@@ -249,77 +317,55 @@ public class ProductDetailFragment extends Fragment {
 
     private View createColorOption(String colorName) {
         View colorView = new View(requireContext());
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(48, 48);
-        params.setMargins(8, 0, 8, 0);
+
+        // 1. Tăng kích thước tổng thể lên một chút (từ 32 lên 40) để chứa viền
+        int size = (int) (40 * getResources().getDisplayMetrics().density);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
+        params.setMargins(0, 0, (int) (10 * getResources().getDisplayMetrics().density), 0);
         colorView.setLayoutParams(params);
 
-        // Get color from name
-        int colorCode = getColorCode(colorName);
-        colorView.setBackgroundColor(colorCode);
+        // 2. QUAN TRỌNG: Thêm padding để viền không bị cắt
+        int p = (int) (4 * getResources().getDisplayMetrics().density);
+        colorView.setPadding(p, p, p, p);
 
-        // Store color code as tag for later use
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.OVAL);
+        int colorCode = getColorCode(colorName);
+        shape.setColor(colorCode);
+
+        colorView.setBackground(shape);
         colorView.setTag(colorCode);
 
-        // Click listener
         colorView.setOnClickListener(v -> {
-            Log.d(TAG, "🎨 Color selected: " + colorName);
             selectedColor = colorName;
-
-            // Update all colors - remove border from others, add to this one
             for (int i = 0; i < llColorContainer.getChildCount(); i++) {
                 updateColorViewBorder(llColorContainer.getChildAt(i), false);
             }
             updateColorViewBorder(v, true);
-
-            Toast.makeText(requireContext(), "Selected: " + colorName, Toast.LENGTH_SHORT).show();
         });
 
         return colorView;
     }
 
     private void updateColorViewBorder(View colorView, boolean isSelected) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.OVAL);
+        shape.setColor((int) colorView.getTag());
+
         if (isSelected) {
-            // Create yellow border with increased thickness (8dp)
-            GradientDrawable borderDrawable = new GradientDrawable();
-            borderDrawable.setShape(GradientDrawable.RECTANGLE);
-            borderDrawable.setCornerRadius(6f);
-
-            // Get the original background color from tag
-            int bgColor = 0xFF808080; // Default gray
-            if (colorView.getTag() != null) {
-                try {
-                    bgColor = (int) colorView.getTag();
-                } catch (Exception e) {
-                    Log.e(TAG, "Error getting tag color", e);
-                }
-            }
-
-            borderDrawable.setColor(bgColor);
-            // 8dp thick yellow border for better visibility
-            borderDrawable.setStroke(8, requireContext().getColor(R.color.yellow_star));
-            colorView.setBackground(borderDrawable);
-
-            // Add elevation for shadow effect
-            colorView.setElevation(8f);
-            colorView.setPadding(0, 0, 0, 0);
-
-            Log.d(TAG, "✅ Enhanced yellow border (8dp) added to selected color");
+            // Vẽ viền đen dày 3dp (~6-8px)
+            shape.setStroke((int) (3 * getResources().getDisplayMetrics().density), Color.BLACK);
         } else {
-            // Remove border - just set background color
-            if (colorView.getTag() != null) {
-                try {
-                    int originalColor = (int) colorView.getTag();
-                    colorView.setBackgroundColor(originalColor);
-                } catch (Exception e) {
-                    Log.e(TAG, "Error restoring color", e);
-                }
+            // Nếu là màu trắng thì giữ viền xám mờ, màu khác thì không viền
+            int bgColor = (int) colorView.getTag();
+            if (bgColor == Color.WHITE) {
+                shape.setStroke(1, Color.LTGRAY);
+            } else {
+                shape.setStroke(0, Color.TRANSPARENT);
             }
-            // Remove elevation
-            colorView.setElevation(0f);
-            colorView.setPadding(0, 0, 0, 0);
         }
+        colorView.setBackground(shape);
     }
-
     /**
      * Chuyển đổi tên màu thành mã hex color từ resources
      */

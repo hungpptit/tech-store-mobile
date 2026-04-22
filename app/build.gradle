@@ -5,9 +5,7 @@ plugins {
 
 android {
     namespace 'com.example.tech_store_mobile'
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.example.tech_store_mobile"
@@ -48,6 +46,8 @@ dependencies {
     // Glide for loading images
     implementation 'com.github.bumptech.glide:glide:4.15.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.15.1'
+
+    implementation 'com.google.code.gson:gson:2.10.1'
 
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

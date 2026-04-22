@@ -1,5 +1,45 @@
 <resources>
     <string name="app_name">Tech-Store-Mobile</string>
+    <string name="back">Back</string>
+    <string name="category">Category</string>
+    <string name="notifications">Notifications</string>
+    <string name="review_rating_placeholder">4.0</string>
+    <string name="review_stars_placeholder">★★★★☆</string>
+    <string name="review_count_placeholder">1034 Ratings</string>
+    <string name="review_sort_most_relevant">Most Relevant</string>
+    <string-array name="review_filter_options">
+        <item>All</item>
+        <item>Only comments</item>
+        <item>5 stars</item>
+        <item>4 stars</item>
+        <item>3 stars</item>
+        <item>2 stars</item>
+        <item>1 star</item>
+    </string-array>
+    <string name="product_image">Product image</string>
+    <string name="product_favorite">Add to favorites</string>
+    <string name="sample_product_name">AirPods Pro</string>
+    <string name="sample_product_price">$ 249.00</string>
+    <string name="sample_product_rating">5.0</string>
+    <string name="reviews_title">Reviews</string>
+    <string name="cart_title">My Cart</string>
+    <string name="cart_delete_item">Delete item</string>
+    <string name="cart_quantity_decrease">Decrease quantity</string>
+    <string name="cart_quantity_increase">Increase quantity</string>
+    <string name="cart_empty_title">Your Cart Is Empty!</string>
+    <string name="cart_empty_message">When you add products, they’ll appear here.</string>
+    <string name="cart_subtotal">Sub-total</string>
+    <string name="cart_vat">VAT (%)</string>
+    <string name="cart_shipping_fee">Shipping fee</string>
+    <string name="cart_total">Total</string>
+    <string name="cart_checkout">Go To Checkout</string>
+    <plurals name="review_count">
+        <item quantity="one">%d Rating</item>
+        <item quantity="other">%d Ratings</item>
+    </plurals>
+    <string name="review_comment_summary_format">%1$d Reviews · %2$d Comments</string>
+    <string name="product_rating_count_format">(%1$d ratings)</string>
+    <string name="product_price_format">$ %1$s</string>
     <string name="nav_home">Home</string>
     <string name="nav_search">Search</string>
     <string name="nav_saved">Saved</string>

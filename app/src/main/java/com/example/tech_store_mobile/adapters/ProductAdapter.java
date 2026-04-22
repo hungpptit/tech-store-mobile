@@ -13,13 +13,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.RatingFormatUtil;
 
 import java.util.List;
+import java.util.Locale;
 
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> {
-    private static final String TAG = "ProductAdapter";
-    private List<Product> productList;
-    private OnProductClickListener listener;
+     private static final String TAG = "ProductAdapter";
+     private final List<Product> productList;
+     private OnProductClickListener listener;
 
     public interface OnProductClickListener {
         void onProductClick(Product product);
@@ -47,17 +49,20 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
         Log.d(TAG, "onBindViewHolder called - position: " + position + ", product: " + product.getProductName());
 
-        // Đổ dữ liệu từ Model vào View
-        holder.tvName.setText(product.getProductName());
-        holder.tvPrice.setText("$ " + product.getFinalPrice());
-        holder.tvRating.setText(String.valueOf(product.getRating()));
+         // Đổ dữ liệu từ Model vào View
+         holder.tvName.setText(product.getProductName());
+         holder.tvPrice.setText(holder.itemView.getContext().getString(
+                 R.string.product_price_format,
+                 String.format(Locale.getDefault(), "%.2f", product.getFinalPrice())
+         ));
+         holder.tvRating.setText(RatingFormatUtil.formatRating(product.getRating()));
 
         // Load ảnh từ Firebase URL bằng Glide
         // Nếu imageUrl trống hoặc null → luôn dùng placeholder
         String imageUrl = product.getImageUrl();
         Log.d(TAG, "   imageUrl: '" + imageUrl + "'");
 
-        if (imageUrl != null && !imageUrl.isEmpty() && !imageUrl.equals("")) {
+        if (imageUrl != null && !imageUrl.isEmpty()) {
             // Có URL hợp lệ → load từ Firebase
             Log.d(TAG, "   Loading from Firebase URL");
             Glide.with(holder.itemView.getContext())

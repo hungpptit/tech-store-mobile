@@ -1,66 +1,212 @@
 package com.example.tech_store_mobile.ui.fragments.main;
 
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link CartFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import com.example.tech_store_mobile.adapters.CartAdapter;
+import com.google.android.material.button.MaterialButton;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class CartFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private ImageView btnBack;
+    private RecyclerView rvCart;
+    private View cartSummaryContainer;
+    private TextView tvSubtotalValue;
+    private TextView tvVatValue;
+    private TextView tvShippingValue;
+    private TextView tvTotalValue;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    private final List<CartAdapter.CartEntry> cartEntries = new ArrayList<>();
+    private CartAdapter cartAdapter;
 
     public CartFragment() {
-        // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment CartFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static CartFragment newInstance(String param1, String param2) {
-        CartFragment fragment = new CartFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_cart, container, false);
+
+        initializeViews(view);
+        setupRecyclerView();
+        loadFakeCartData();
+        setupBackAction();
+
+        return view;
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        hideBottomNavigation();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        hideBottomNavigation();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        showBottomNavigation();
+    }
+
+    @Override
+    public void onDestroyView() {
+        showBottomNavigation();
+        super.onDestroyView();
+    }
+
+    private void initializeViews(View view) {
+        btnBack = view.findViewById(R.id.btnBack);
+        ImageView btnNotification = view.findViewById(R.id.btnNotification);
+        TextView tvTitle = view.findViewById(R.id.tvTitle);
+        rvCart = view.findViewById(R.id.rvCart);
+        cartSummaryContainer = view.findViewById(R.id.cartSummary);
+        tvSubtotalValue = view.findViewById(R.id.tvSubtotalValue);
+        tvVatValue = view.findViewById(R.id.tvVatValue);
+        tvShippingValue = view.findViewById(R.id.tvShippingValue);
+        tvTotalValue = view.findViewById(R.id.tvTotalValue);
+        MaterialButton btnCheckout = view.findViewById(R.id.btnCheckout);
+
+        tvTitle.setText(R.string.cart_title);
+        if (btnNotification != null) {
+            btnNotification.setVisibility(View.VISIBLE);
+        }
+
+        if (btnCheckout != null) {
+            btnCheckout.setOnClickListener(v -> {
+                // Temporary no-op until checkout flow exists
+            });
         }
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_cart, container, false);
+    private void setupRecyclerView() {
+        rvCart.setLayoutManager(new LinearLayoutManager(getContext()));
+        rvCart.setNestedScrollingEnabled(true);
+        cartAdapter = new CartAdapter(cartEntries, new CartAdapter.OnCartActionListener() {
+            @Override
+            public void onIncreaseQuantity(int position) {
+                if (position >= 0 && position < cartEntries.size()) {
+                    CartAdapter.CartEntry item = cartEntries.get(position);
+                    item.setQuantity(item.getQuantity() + 1);
+                    cartAdapter.notifyItemChanged(position);
+                    updateCartSummary();
+                }
+            }
+
+            @Override
+            public void onDecreaseQuantity(int position) {
+                if (position >= 0 && position < cartEntries.size()) {
+                    CartAdapter.CartEntry item = cartEntries.get(position);
+                    if (item.getQuantity() > 1) {
+                        item.setQuantity(item.getQuantity() - 1);
+                        cartAdapter.notifyItemChanged(position);
+                    }
+                    updateCartSummary();
+                }
+            }
+
+            @Override
+            public void onDeleteItem(int position) {
+                if (position >= 0 && position < cartEntries.size()) {
+                    cartEntries.remove(position);
+                    if (cartEntries.isEmpty()) {
+                        cartAdapter.notifyItemRemoved(position);
+                        cartAdapter.notifyItemInserted(0);
+                    } else {
+                        cartAdapter.notifyItemRemoved(position);
+                        if (position < cartEntries.size()) {
+                            cartAdapter.notifyItemRangeChanged(position, cartEntries.size() - position);
+                        }
+                    }
+                    updateCartSummary();
+                }
+            }
+        });
+        rvCart.setAdapter(cartAdapter);
+    }
+
+    private void loadFakeCartData() {
+        cartEntries.clear();
+
+        cartEntries.add(new CartAdapter.CartEntry("prod_001", "Macbook Pro M4", "Black", R.drawable.laptop, 2089.00, 1));
+        cartEntries.add(new CartAdapter.CartEntry("prod_007", "AirPods Max", "Silver", R.drawable.headphones, 359.99, 2));
+
+        cartAdapter.notifyItemRemoved(0);
+        cartAdapter.notifyItemRangeInserted(0, cartEntries.size());
+        updateCartSummary();
+    }
+
+    private void updateCartSummary() {
+        if (cartSummaryContainer == null) return;
+
+        boolean hasItems = !cartEntries.isEmpty();
+        cartSummaryContainer.setVisibility(hasItems ? View.VISIBLE : View.GONE);
+
+        double subtotal = 0.0;
+        for (CartAdapter.CartEntry item : cartEntries) {
+            subtotal += item.getLineTotal();
+        }
+        double vat = 0.0;
+        double shipping = hasItems ? 80.0 : 0.0;
+        double total = subtotal + vat + shipping;
+
+        if (tvSubtotalValue != null) tvSubtotalValue.setText(String.format(java.util.Locale.US, "$ %.2f", subtotal));
+        if (tvVatValue != null) tvVatValue.setText(String.format(java.util.Locale.US, "$ %.2f", vat));
+        if (tvShippingValue != null) tvShippingValue.setText(String.format(java.util.Locale.US, "$ %.2f", shipping));
+        if (tvTotalValue != null) tvTotalValue.setText(String.format(java.util.Locale.US, "$ %.2f", total));
+    }
+
+    private void setupBackAction() {
+        btnBack.setOnClickListener(v -> {
+            if (isAdded()) {
+                if (requireActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                } else if (requireActivity() instanceof MainActivity) {
+                    requireActivity().findViewById(R.id.view_pager).setVisibility(View.VISIBLE);
+                    requireActivity().findViewById(R.id.fragment_container).setVisibility(View.GONE);
+                    ((MainActivity) requireActivity()).syncBottomNavigationVisibility();
+                    androidx.viewpager.widget.ViewPager viewPager = requireActivity().findViewById(R.id.view_pager);
+                    if (viewPager != null) {
+                        viewPager.setCurrentItem(0);
+                    }
+                }
+            }
+        });
+    }
+
+    private void hideBottomNavigation() {
+        if (getActivity() == null) return;
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+        if (bottomNav != null) {
+            bottomNav.setVisibility(View.GONE);
+        }
+    }
+
+    private void showBottomNavigation() {
+        if (getActivity() == null) return;
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+        if (bottomNav != null) {
+            bottomNav.setVisibility(View.VISIBLE);
+        }
     }
 }

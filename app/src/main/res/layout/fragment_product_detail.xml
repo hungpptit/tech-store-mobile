@@ -1,243 +1,232 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/white">
+    android:background="@color/white"
+    android:padding="16dp">
 
-    <!-- Header with back button and favorite -->
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center_vertical">
+        android:layout_marginBottom="20dp"
+        android:layout_marginTop="20dp">
+
 
         <ImageView
             android:id="@+id/btnBack"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_back"
-            android:contentDescription="Back button"
-            android:scaleType="centerInside" />
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/vector" />
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_centerInParent="true"
             android:text="Details"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/black"
-            android:gravity="center" />
+            android:textColor="@android:color/black"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/btnFavorite"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_heart"
-            android:contentDescription="Favorite button"
-            android:scaleType="centerInside" />
-    </LinearLayout>
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_heart" />
+    </RelativeLayout>
 
-    <!-- Scrollable content -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:scrollbars="none"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="20dp">
 
-            <!-- Product Image -->
-            <FrameLayout
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="300dp"
-                android:layout_marginBottom="20dp"
-                android:background="@drawable/rounded_rectangle"
-                android:elevation="2dp">
-
+                android:layout_marginTop="10dp"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#F8F8F8">
                 <ImageView
                     android:id="@+id/ivProductImage"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:padding="30dp"
                     android:scaleType="centerInside"
-                    android:contentDescription="Product image" />
-            </FrameLayout>
+                    android:src="@drawable/watch" />
+            </androidx.cardview.widget.CardView>
 
-            <!-- Product Name -->
             <TextView
                 android:id="@+id/tvProductName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="25dp"
                 android:text="Product Name"
-                android:textSize="22sp"
-                android:textStyle="bold"
                 android:textColor="@color/black"
-                android:layout_marginBottom="8dp" />
+                android:textSize="30sp"
+                android:textStyle="bold" />
 
-            <!-- Brand -->
             <TextView
                 android:id="@+id/tvBrand"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Brand"
-                android:textSize="14sp"
-                android:textColor="@color/grey_text"
-                android:layout_marginBottom="12dp" />
+                android:text="Brand Name"
+                android:textColor="#8E8E8E"
+                android:textSize="15sp" />
 
-            <!-- Rating & Reviews -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="20dp"
-                android:gravity="center_vertical">
-
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_rating_tag"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp">
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_star"
+                    app:tint="@color/yellow_star" />
                 <TextView
                     android:id="@+id/tvRating"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="4.5/5"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/yellow_star"
-                    android:drawableStart="@drawable/ic_star"
-                    android:drawablePadding="4dp" />
-
+                    android:layout_marginStart="6dp"
+                    android:text="4.8/5"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
                 <TextView
                     android:id="@+id/tvReviewCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="(250 reviews)"
-                    android:textSize="14sp"
-                    android:textColor="@color/grey_text"
-                    android:layout_marginStart="8dp" />
+                    android:layout_marginStart="6dp"
+                    android:text="(120 reviews)"
+                    android:textColor="#8E8E8E"
+                    android:textSize="13sp" />
             </LinearLayout>
 
-            <!-- Description -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="25dp"
                 android:text="Description"
-                android:textSize="14sp"
-                android:textStyle="bold"
                 android:textColor="@color/black"
-                android:layout_marginBottom="8dp" />
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvDescription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Product description goes here"
-                android:textSize="13sp"
-                android:textColor="@color/grey_text"
-                android:layout_marginBottom="24dp"
-                android:lineSpacingMultiplier="1.2" />
+                android:layout_marginTop="8dp"
+                android:lineSpacingExtra="6dp"
+                android:text="The description text will look much better with more line spacing..."
+                android:textColor="#555555"
+                android:textSize="15sp" />
 
-            <!-- Color Selection -->
             <TextView
                 android:id="@+id/tvChooseColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="25dp"
                 android:text="Choose color"
-                android:textSize="14sp"
-                android:textStyle="bold"
                 android:textColor="@color/black"
-                android:layout_marginBottom="12dp" />
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="20dp"
                 android:scrollbars="none">
-
                 <LinearLayout
                     android:id="@+id/llColorContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:paddingVertical="10dp"
+                    android:paddingHorizontal="5dp"
+                    android:clipToPadding="false"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical" />
+                    android:gravity="center_vertical"/>
             </HorizontalScrollView>
-
-            <!-- Spacer to push button down if content is short -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
 
         </LinearLayout>
     </ScrollView>
 
-    <!-- Bottom Section with Price and Add to Cart Button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:background="@color/white"
+        android:padding="24dp"
+        android:background="@drawable/bg_bottom_bar_detail"
+        android:elevation="12dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <!-- Price Section - LEFT SIDE -->
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="horizontal"
-            android:padding="12dp"
-            android:background="@drawable/price_rounded_background"
-            android:gravity="center_vertical">
-
+            android:orientation="vertical">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Price:"
-                android:textSize="12sp"
-                android:textColor="@color/grey_text"
-                android:layout_marginEnd="4dp" />
-
+                android:text="Total Price"
+                android:textColor="#8E8E8E"
+                android:textSize="13sp" />
             <TextView
                 android:id="@+id/tvPrice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="$ 999.99"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:textColor="@color/black" />
+                android:text="$ 0.00"
+                android:textColor="@color/black"
+                android:textSize="24sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Add to Cart Button - RIGHT SIDE -->
         <FrameLayout
             android:id="@+id/btnAddToCart"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:background="@drawable/button_add_to_cart"
-            android:contentDescription="Add to cart button">
+            android:layout_width="180dp"
+            android:layout_height="60dp"
+            android:background="@drawable/btn_black_rounded">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="Add to Cart"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:contentDescription="Button text" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginEnd="10dp"
+                    android:src="@drawable/bag"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Add to Cart"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </FrameLayout>
     </LinearLayout>
-
 </LinearLayout>
-
-
-
-
-
-
-
-
