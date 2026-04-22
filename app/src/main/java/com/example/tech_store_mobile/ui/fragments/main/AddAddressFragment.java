@@ -25,7 +25,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.tech_store_mobile.Model.Address;
 import com.example.tech_store_mobile.R;
-import com.google.firebase.auth.FirebaseAuth;
+import com.example.tech_store_mobile.utils.AuthManager;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
@@ -41,7 +41,6 @@ public class AddAddressFragment extends Fragment {
     private CheckBox cbDefault;
     private AppCompatButton btnAdd;
     private FirebaseFirestore db;
-    private FirebaseAuth mAuth;
 
     private String[] nicknames = {"Home", "Office", "Apartment", "Parent's House"};
 
@@ -51,7 +50,6 @@ public class AddAddressFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_add_address, container, false);
 
         db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
 
         spinnerNickname = view.findViewById(R.id.spinner_nickname);
         etFullAddress = view.findViewById(R.id.et_full_address);
@@ -95,8 +93,7 @@ public class AddAddressFragment extends Fragment {
     }
 
     private void saveAddress() {
-//        String userId = mAuth.getUid();
-        String userId = "user_001"; 
+        String userId = AuthManager.getCurrentUid();
         if (userId == null) {
             Toast.makeText(getContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
             return;

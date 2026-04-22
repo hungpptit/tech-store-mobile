@@ -17,7 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.tech_store_mobile.Model.Address;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.AddressAdapter;
-import com.google.firebase.auth.FirebaseAuth;
+import com.example.tech_store_mobile.utils.AuthManager;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
@@ -34,7 +34,6 @@ public class AddressFragment extends Fragment {
     private AddressAdapter addressAdapter;
     private List<Address> addressList;
     private FirebaseFirestore db;
-    private FirebaseAuth mAuth;
 
     @Nullable
     @Override
@@ -42,7 +41,6 @@ public class AddressFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_address, container, false);
 
         db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
 
         rvAddresses = view.findViewById(R.id.rv_addresses);
         addressList = new ArrayList<>();
@@ -71,7 +69,11 @@ public class AddressFragment extends Fragment {
     }
 
     private void loadAddresses() {
-        String userId = "user_001"; // Sử dụng ID tĩnh để test đồng bộ
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         db.collection("addresses")
                 .whereEqualTo("userId", userId)
@@ -101,8 +103,12 @@ public class AddressFragment extends Fragment {
             return;
         }
 
-        String userId = "user_001";
-        
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         db.collection("addresses")
                 .whereEqualTo("userId", userId)
                 .whereEqualTo("isDefault", true)

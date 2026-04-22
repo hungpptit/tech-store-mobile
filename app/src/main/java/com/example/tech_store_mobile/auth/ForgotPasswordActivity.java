@@ -41,9 +41,9 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 			btnResetPassword.setOnClickListener(v -> sendResetRequest());
 		}
 
-		ImageView btnForgotBack = findViewById(R.id.btnForgotBack);
-		if (btnForgotBack != null) {
-			btnForgotBack.setOnClickListener(v -> finish());
+		ImageView btnAuthBack = findViewById(R.id.btnAuthBack);
+		if (btnAuthBack != null) {
+			btnAuthBack.setOnClickListener(v -> finish());
 		}
 
 		TextView tvBackToLogin = findViewById(R.id.tvBackToLogin);

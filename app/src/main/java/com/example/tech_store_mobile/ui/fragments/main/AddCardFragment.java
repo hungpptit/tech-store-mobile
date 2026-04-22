@@ -22,7 +22,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.tech_store_mobile.Model.PaymentMethod;
 import com.example.tech_store_mobile.R;
-import com.google.firebase.auth.FirebaseAuth;
+import com.example.tech_store_mobile.utils.AuthManager;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
@@ -37,7 +37,6 @@ public class AddCardFragment extends Fragment {
     private CheckBox cbDefault;
     private AppCompatButton btnAddCard;
     private FirebaseFirestore db;
-    private FirebaseAuth mAuth;
 
     @Nullable
     @Override
@@ -45,7 +44,6 @@ public class AddCardFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_add_card, container, false);
 
         db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
 
         etCardNumber = view.findViewById(R.id.et_card_number);
         etExpiryDate = view.findViewById(R.id.et_expiry_date);
@@ -95,7 +93,11 @@ public class AddCardFragment extends Fragment {
     }
 
     private void saveCardToFirestore() {
-        String userId = "user_001"; 
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
         String cardNumber = etCardNumber.getText().toString().trim();
         String expiryDate = etExpiryDate.getText().toString().trim();
         boolean isDefault = cbDefault.isChecked();

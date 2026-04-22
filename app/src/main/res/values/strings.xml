@@ -45,7 +45,9 @@
     <string name="guest_state_title">Sign in required</string>
     <string name="guest_state_message_cart">Please sign in to view your cart.</string>
     <string name="guest_state_message_account">Please sign in to access your account.</string>
+    <string name="guest_state_message_saved">Please sign in to view your saved items.</string>
     <string name="guest_state_action">Sign in</string>
+    <string name="auth_back_content_description">Go back</string>
     <string name="no_colors_available">No colors available</string>
     <string name="auth_login_button">Login</string>
     <string name="auth_loading">Signing in…</string>

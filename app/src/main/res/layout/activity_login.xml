@@ -21,6 +21,8 @@
             android:paddingEnd="24dp"
             android:paddingBottom="24dp">
 
+            <include layout="@layout/layout_auth_back_button" />
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

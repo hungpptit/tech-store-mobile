@@ -26,9 +26,14 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
      private final List<Product> productList;
      private final boolean tintHeartRed;
      private OnProductClickListener listener;
+      private OnHeartClickListener heartListener;
 
     public interface OnProductClickListener {
         void onProductClick(Product product);
+    }
+
+    public interface OnHeartClickListener {
+        void onHeartClick(Product product, int position);
     }
 
     public ProductAdapter(List<Product> productList) {
@@ -42,6 +47,10 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
     public void setOnProductClickListener(OnProductClickListener listener) {
         this.listener = listener;
+    }
+
+    public void setOnHeartClickListener(OnHeartClickListener heartListener) {
+        this.heartListener = heartListener;
     }
 
     @NonNull
@@ -115,7 +124,10 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
             holder.btnHeart.clearColorFilter();
         }
         holder.btnHeart.setOnClickListener(v -> {
-            // Logic xử lý yêu thích sẽ viết ở đây
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && heartListener != null) {
+                heartListener.onHeartClick(productList.get(adapterPosition), adapterPosition);
+            }
         });
 
         // Click listener cho item

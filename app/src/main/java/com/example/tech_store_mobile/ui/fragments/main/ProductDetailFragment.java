@@ -21,9 +21,9 @@ import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.Model.Review;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.MainActivity;
+import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
 import com.example.tech_store_mobile.utils.RatingFormatUtil;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.List;
@@ -165,27 +165,23 @@ public class ProductDetailFragment extends Fragment {
         // Favorite button
         btnFavorite.setOnClickListener(v -> {
             Log.d(TAG, "❤️ Favorite button clicked");
-            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-                AuthUiHelper.showLoginDialog(this, R.string.login_required_title, R.string.login_required_favorite_message);
+            if (!AuthUiHelper.requireLogin(this, R.string.login_required_title, R.string.login_required_favorite_message)) {
                 return;
             }
-            Toast.makeText(requireContext(), "Added to favorites!", Toast.LENGTH_SHORT).show();
-            // TODO: Implement add to favorites logic
+            toggleSavedItem();
         });
 
         // Add to cart button
         btnAddToCart.setOnClickListener(v -> {
             Log.d(TAG, "🛒 Add to cart clicked for product: " + productId);
-            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-                AuthUiHelper.showLoginDialog(this, R.string.login_required_title, R.string.login_required_message);
+            if (!AuthUiHelper.requireLogin(this)) {
                 return;
             }
             if (selectedColor.isEmpty()) {
                 Toast.makeText(requireContext(), "Please choose a color", Toast.LENGTH_SHORT).show();
                 return;
             }
-            Toast.makeText(requireContext(), "Added to cart! Color: " + selectedColor, Toast.LENGTH_SHORT).show();
-            // TODO: Implement add to cart logic
+            addToCart();
         });
 
         // Review count click
@@ -235,6 +231,75 @@ public class ProductDetailFragment extends Fragment {
                     Log.e(TAG, "❌ Error loading product", e);
                     Toast.makeText(requireContext(), "Error loading product: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void addToCart() {
+        if (product == null) {
+            Toast.makeText(requireContext(), "Product data not ready", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(requireContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String docId = userId + "_" + productId + "_" + selectedColor;
+        double priceAtAdded = product.getFinalPrice() != null ? product.getFinalPrice() : 0.0;
+
+        db.collection("carts").document(docId).get()
+                .addOnSuccessListener(snapshot -> {
+                    long currentQuantity = snapshot.exists() && snapshot.getLong("quantity") != null
+                            ? snapshot.getLong("quantity")
+                            : 0L;
+
+                    java.util.Map<String, Object> cartData = new java.util.HashMap<>();
+                    cartData.put("userId", userId);
+                    cartData.put("productId", productId);
+                    cartData.put("productName", product.getProductName());
+                    cartData.put("selectedColor", selectedColor);
+                    cartData.put("imageUrl", product.getImageUrl());
+                    cartData.put("priceAtAdded", priceAtAdded);
+                    cartData.put("quantity", currentQuantity + 1);
+
+                    db.collection("carts").document(docId).set(cartData)
+                            .addOnSuccessListener(unused -> Toast.makeText(requireContext(), "Added to cart! Color: " + selectedColor, Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e -> Toast.makeText(requireContext(), "Failed to add to cart: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                })
+                .addOnFailureListener(e -> Toast.makeText(requireContext(), "Failed to add to cart: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void toggleSavedItem() {
+        if (product == null) {
+            Toast.makeText(requireContext(), "Product data not ready", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(requireContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String docId = userId + "_" + productId;
+        db.collection("saved_items").document(docId).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot.exists()) {
+                        db.collection("saved_items").document(docId).delete()
+                                .addOnSuccessListener(unused -> Toast.makeText(requireContext(), "Removed from saved items", Toast.LENGTH_SHORT).show())
+                                .addOnFailureListener(e -> Toast.makeText(requireContext(), "Failed to remove saved item: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    } else {
+                        java.util.Map<String, Object> savedData = new java.util.HashMap<>();
+                        savedData.put("userId", userId);
+                        savedData.put("productId", productId);
+
+                        db.collection("saved_items").document(docId).set(savedData)
+                                .addOnSuccessListener(unused -> Toast.makeText(requireContext(), "Saved successfully", Toast.LENGTH_SHORT).show())
+                                .addOnFailureListener(e -> Toast.makeText(requireContext(), "Failed to save item: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(requireContext(), "Failed to save item: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     private void displayProductData() {

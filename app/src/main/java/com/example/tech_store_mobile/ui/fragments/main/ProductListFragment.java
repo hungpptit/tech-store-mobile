@@ -19,22 +19,31 @@ import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.adapters.ProductAdapter;
+import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.AuthUiHelper;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ProductListFragment - Hiển thị danh sách sản phẩm của một category
+ * ProductListFragment - Hiển thị danh sách sản phẩm theo category hoặc theo bộ lọc đặc biệt
  *
  * Arguments:
- * - categoryId: ID của category
- * - categoryName: Tên category (hiển thị trên header)
+ * - mode: category | new_products | best_sellers
+ * - categoryId: ID của category (chỉ dùng khi mode = category)
+ * - categoryName / displayTitle: Tên hiển thị trên header
  */
 public class ProductListFragment extends Fragment {
     private static final String TAG = "ProductListFragment";
+    private static final String ARG_MODE = "mode";
     private static final String ARG_CATEGORY_ID = "categoryId";
     private static final String ARG_CATEGORY_NAME = "categoryName";
+    private static final String ARG_DISPLAY_TITLE = "displayTitle";
+
+    private static final String MODE_CATEGORY = "category";
+    private static final String MODE_NEW_PRODUCTS = "new_products";
+    private static final String MODE_BEST_SELLERS = "best_sellers";
 
     // Views
     private ImageView btnBack;
@@ -49,17 +58,33 @@ public class ProductListFragment extends Fragment {
     private List<Product> productList;
 
     // Arguments
+    private String mode;
     private String categoryId;
     private String categoryName;
+    private String displayTitle;
 
     public ProductListFragment() {
     }
 
     public static ProductListFragment newInstance(String categoryId, String categoryName) {
+        return newInstanceInternal(MODE_CATEGORY, categoryId, categoryName, categoryName);
+    }
+
+    public static ProductListFragment newInstanceForNewProducts() {
+        return newInstanceInternal(MODE_NEW_PRODUCTS, null, null, "New Products");
+    }
+
+    public static ProductListFragment newInstanceForBestSellers() {
+        return newInstanceInternal(MODE_BEST_SELLERS, null, null, "Best Sellers");
+    }
+
+    private static ProductListFragment newInstanceInternal(String mode, String categoryId, String categoryName, String displayTitle) {
         ProductListFragment fragment = new ProductListFragment();
         Bundle args = new Bundle();
+        args.putString(ARG_MODE, mode);
         args.putString(ARG_CATEGORY_ID, categoryId);
         args.putString(ARG_CATEGORY_NAME, categoryName);
+        args.putString(ARG_DISPLAY_TITLE, displayTitle);
         fragment.setArguments(args);
         return fragment;
     }
@@ -68,8 +93,10 @@ public class ProductListFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
+            mode = getArguments().getString(ARG_MODE, MODE_CATEGORY);
             categoryId = getArguments().getString(ARG_CATEGORY_ID);
             categoryName = getArguments().getString(ARG_CATEGORY_NAME);
+            displayTitle = getArguments().getString(ARG_DISPLAY_TITLE, categoryName);
         }
     }
 
@@ -93,14 +120,14 @@ public class ProductListFragment extends Fragment {
         tvCategoryName = view.findViewById(R.id.tvCategoryName);
         rvProducts = view.findViewById(R.id.rvProducts);
 
-        // Set category name
-        tvCategoryName.setText(categoryName);
+        // Set title
+        tvCategoryName.setText(displayTitle);
 
         // Setup RecyclerView
         setupProductRecyclerView();
 
-        // Load products by category
-        loadProductsByCategory();
+        // Load products by selected mode
+        loadProductsForCurrentMode();
 
         // Back button
         btnBack.setOnClickListener(v -> {
@@ -149,6 +176,8 @@ public class ProductListFragment extends Fragment {
             navigateToProductDetail(product.getProductId());
         });
 
+        productAdapter.setOnHeartClickListener(this::toggleSavedItem);
+
         rvProducts.setAdapter(productAdapter);
         
         Log.d(TAG, "   Adapter set. getItemCount: " + productAdapter.getItemCount());
@@ -172,6 +201,48 @@ public class ProductListFragment extends Fragment {
                 .replace(R.id.fragment_container, detailFragment)
                 .addToBackStack(null)
                 .commit();
+    }
+
+    private void toggleSavedItem(Product product, int position) {
+        if (!AuthUiHelper.requireLogin(this, R.string.login_required_title, R.string.login_required_favorite_message)) {
+            return;
+        }
+
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null || product == null || product.getProductId() == null) {
+            Toast.makeText(getContext(), "Unable to save item right now.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String docId = userId + "_" + product.getProductId();
+        db.collection("saved_items").document(docId).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot.exists()) {
+                        db.collection("saved_items").document(docId).delete()
+                                .addOnSuccessListener(unused -> Toast.makeText(getContext(), "Removed from saved items", Toast.LENGTH_SHORT).show());
+                    } else {
+                        java.util.Map<String, Object> savedData = new java.util.HashMap<>();
+                        savedData.put("userId", userId);
+                        savedData.put("productId", product.getProductId());
+
+                        db.collection("saved_items").document(docId).set(savedData)
+                                .addOnSuccessListener(unused -> Toast.makeText(getContext(), "Saved successfully", Toast.LENGTH_SHORT).show());
+                    }
+                });
+    }
+
+    private void loadProductsForCurrentMode() {
+        if (MODE_NEW_PRODUCTS.equals(mode)) {
+            loadProductsByBooleanField("isNew", "New Products");
+            return;
+        }
+
+        if (MODE_BEST_SELLERS.equals(mode)) {
+            loadProductsByBooleanField("isBestSeller", "Best Sellers");
+            return;
+        }
+
+        loadProductsByCategory();
     }
 
     /**
@@ -211,6 +282,31 @@ public class ProductListFragment extends Fragment {
                 });
     }
 
+    private void loadProductsByBooleanField(String fieldName, String emptyMessageLabel) {
+        Log.d(TAG, "🔍 Loading products by field: " + fieldName);
+
+        db.collection("products")
+                .whereEqualTo(fieldName, true)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        productList.clear();
+                        productList.addAll(task.getResult().toObjects(Product.class));
+                        productAdapter.notifyDataSetChanged();
+                        Log.d(TAG, "✅ Products loaded by " + fieldName + ": " + productList.size());
+
+                        if (productList.isEmpty()) {
+                            Toast.makeText(getContext(), "No products found for " + emptyMessageLabel, Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Log.e(TAG, "❌ Error loading products by " + fieldName, task.getException());
+                        Exception exception = task.getException();
+                        String message = exception != null && exception.getMessage() != null ? exception.getMessage() : "Unknown error";
+                        Toast.makeText(getContext(), "Error loading products: " + message, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
     /**
      * Tìm sản phẩm theo tên category (dùng searchKeywords hoặc tìm kiếm khác)
      */
@@ -244,14 +340,15 @@ public class ProductListFragment extends Fragment {
                         productAdapter.notifyDataSetChanged();
                         Log.d(TAG, "✅ Products loaded (by Name) for category " + categoryName + ": " + productList.size());
 
-                        if (productList.size() == 0) {
+                        if (productList.isEmpty()) {
                             Toast.makeText(getContext(), "No products found for this category", Toast.LENGTH_SHORT).show();
                         }
                     } else {
                         Log.e(TAG, "❌ Error loading products", task.getException());
-                        Toast.makeText(getContext(), "Error loading products: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        Exception exception = task.getException();
+                        String message = exception != null && exception.getMessage() != null ? exception.getMessage() : "Unknown error";
+                        Toast.makeText(getContext(), "Error loading products: " + message, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 }
-

@@ -36,6 +36,19 @@ public final class AuthUiHelper {
         Intent intent = new Intent(fragment.requireContext(), LoginActivity.class);
         fragment.startActivity(intent);
     }
+
+    public static boolean requireLogin(Fragment fragment) {
+        return requireLogin(fragment, R.string.login_required_title, R.string.login_required_message);
+    }
+
+    public static boolean requireLogin(Fragment fragment, int titleRes, int messageRes) {
+        if (AuthManager.isLoggedIn()) {
+            return true;
+        }
+
+        showLoginDialog(fragment, titleRes, messageRes);
+        return false;
+    }
 }
 
 

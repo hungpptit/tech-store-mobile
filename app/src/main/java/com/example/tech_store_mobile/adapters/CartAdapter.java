@@ -9,6 +9,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.R;
 
 import java.util.List;
@@ -30,15 +31,25 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final String productId;
         private final String productName;
         private final String selectedColor;
-        private final int imageResId;
+        private final Integer imageResId;
+        private final String imageUrl;
         private final double priceAtAdded;
         private int quantity;
 
         public CartEntry(String productId, String productName, String selectedColor, int imageResId, double priceAtAdded, int quantity) {
+            this(productId, productName, selectedColor, imageResId, null, priceAtAdded, quantity);
+        }
+
+        public CartEntry(String productId, String productName, String selectedColor, String imageUrl, double priceAtAdded, int quantity) {
+            this(productId, productName, selectedColor, null, imageUrl, priceAtAdded, quantity);
+        }
+
+        private CartEntry(String productId, String productName, String selectedColor, Integer imageResId, String imageUrl, double priceAtAdded, int quantity) {
             this.productId = productId;
             this.productName = productName;
             this.selectedColor = selectedColor;
             this.imageResId = imageResId;
+            this.imageUrl = imageUrl;
             this.priceAtAdded = priceAtAdded;
             this.quantity = quantity;
         }
@@ -46,7 +57,8 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         public String getProductId() { return productId; }
         public String getProductName() { return productName; }
         public String getSelectedColor() { return selectedColor; }
-        public int getImageResId() { return imageResId; }
+        public Integer getImageResId() { return imageResId; }
+        public String getImageUrl() { return imageUrl; }
         public double getPriceAtAdded() { return priceAtAdded; }
         public int getQuantity() { return quantity; }
         public void setQuantity(int quantity) { this.quantity = quantity; }
@@ -88,7 +100,17 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private void bindItem(ItemViewHolder holder, int position) {
         CartEntry item = cartItems.get(position);
-        holder.imgProduct.setImageResource(item.getImageResId());
+        if (item.getImageUrl() != null && !item.getImageUrl().trim().isEmpty()) {
+            Glide.with(holder.itemView.getContext())
+                    .load(item.getImageUrl())
+                    .placeholder(R.drawable.watch)
+                    .error(R.drawable.watch)
+                    .into(holder.imgProduct);
+        } else if (item.getImageResId() != null) {
+            holder.imgProduct.setImageResource(item.getImageResId());
+        } else {
+            holder.imgProduct.setImageResource(R.drawable.watch);
+        }
         holder.tvProductName.setText(item.getProductName());
         holder.tvColor.setText(item.getSelectedColor());
         holder.tvPrice.setText(formatMoney(item.getPriceAtAdded()));

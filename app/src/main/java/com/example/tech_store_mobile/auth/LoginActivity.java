@@ -8,6 +8,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Patterns;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -16,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.UserProfileSyncHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -30,21 +33,20 @@ import com.google.firebase.auth.GoogleAuthProvider;
 
 import java.util.Locale;
 
-import com.example.tech_store_mobile.utils.UserProfileSyncHelper;
-
 public class LoginActivity extends AppCompatActivity {
 
     // Views Login
     private TextInputLayout tipLoginEmail, tipLoginPassword;
     private TextInputEditText edtLoginEmail, edtLoginPassword;
     private MaterialButton btnLogin;
+    private ImageView btnAuthBack;
 
     // Views Overlay Success
     private View layoutSuccessOverlay;
     private MaterialButton btnThanks;
 
     // Firebase & Google
-    private FirebaseAuth mAuth;
+    private final FirebaseAuth mAuth = AuthManager.getAuth();
     private GoogleSignInClient googleSignInClient;
     private ActivityResultLauncher<Intent> googleSignInLauncher;
 
@@ -53,7 +55,6 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        mAuth = FirebaseAuth.getInstance();
 
         initViews();
         configureGoogleSignIn();
@@ -67,12 +68,17 @@ public class LoginActivity extends AppCompatActivity {
         edtLoginEmail = findViewById(R.id.edtLoginEmail);
         edtLoginPassword = findViewById(R.id.edtLoginPassword);
         btnLogin = findViewById(R.id.btnLogin);
+        btnAuthBack = findViewById(R.id.btnAuthBack);
         layoutSuccessOverlay = findViewById(R.id.layoutSuccessOverlay);
         btnThanks = findViewById(R.id.btn_thanks);
     }
 
     private void setupListeners() {
         btnLogin.setOnClickListener(v -> attemptLogin());
+
+        if (btnAuthBack != null) {
+            btnAuthBack.setOnClickListener(v -> finish());
+        }
 
         findViewById(R.id.btnGoogleLogin).setOnClickListener(v -> startGoogleSignIn());
 
@@ -250,9 +256,9 @@ public class LoginActivity extends AppCompatActivity {
         mAuth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null))
                 .addOnCompleteListener(this, task -> {
                     setLoading(false);
-                    if (task.isSuccessful() && mAuth.getCurrentUser() != null) {
+                    if (task.isSuccessful() && AuthManager.getCurrentUser() != null) {
                         UserProfileSyncHelper.syncGoogleUserProfile(
-                                mAuth.getCurrentUser().getUid(),
+                                AuthManager.getCurrentUser().getUid(),
                                 displayName,
                                 email,
                                 avatarUrl,

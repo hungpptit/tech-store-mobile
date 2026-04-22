@@ -17,7 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.tech_store_mobile.Model.PaymentMethod;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.PaymentMethodAdapter;
-import com.google.firebase.auth.FirebaseAuth;
+import com.example.tech_store_mobile.utils.AuthManager;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
@@ -34,7 +34,6 @@ public class PaymentMethodFragment extends Fragment {
     private PaymentMethodAdapter paymentAdapter;
     private List<PaymentMethod> paymentList;
     private FirebaseFirestore db;
-    private FirebaseAuth mAuth;
 
     @Nullable
     @Override
@@ -42,7 +41,6 @@ public class PaymentMethodFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_payment_method, container, false);
 
         db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
 
         rvPaymentMethods = view.findViewById(R.id.rv_payment_methods);
         paymentList = new ArrayList<>();
@@ -71,7 +69,11 @@ public class PaymentMethodFragment extends Fragment {
     }
 
     private void loadPaymentMethods() {
-        String userId = "user_001"; // Sử dụng ID tĩnh để test đồng bộ
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         db.collection("payment_methods")
                 .whereEqualTo("userId", userId)
@@ -100,8 +102,12 @@ public class PaymentMethodFragment extends Fragment {
             return;
         }
 
-        String userId = "user_001";
-        
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         db.collection("payment_methods")
                 .whereEqualTo("userId", userId)
                 .whereEqualTo("isDefault", true)

@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,6 +20,8 @@ import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.CategoryAdapter;
 import com.example.tech_store_mobile.adapters.ProductAdapter;
+import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.AuthUiHelper;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
@@ -36,6 +39,7 @@ public class HomeFragment extends Fragment {
 
     // Views
     private RecyclerView rvCategories, rvProducts, rvBestSellers;
+    private TextView tvViewAllNewProducts, tvViewAllBestSellers;
 
     // Firebase
     private FirebaseFirestore db;
@@ -68,11 +72,14 @@ public class HomeFragment extends Fragment {
         rvCategories = view.findViewById(R.id.rv_categories_home);
         rvProducts = view.findViewById(R.id.rv_products_home);
         rvBestSellers = view.findViewById(R.id.rv_best_sellers);
+        tvViewAllNewProducts = view.findViewById(R.id.tvViewAllNewProducts);
+        tvViewAllBestSellers = view.findViewById(R.id.tvViewAllBestSellers);
 
         // Setup RecyclerViews
         setupCategoryRecyclerView();
         setupProductRecyclerView();
         setupBestSellerRecyclerView();
+        setupViewAllActions();
 
         // Load Data from Firebase
         loadCategoriesFromFirebase();
@@ -118,17 +125,25 @@ public class HomeFragment extends Fragment {
                     category.getCategoryId(),
                     category.getCategoryName()
             );
-            requireActivity().getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, fragment)
-                    .addToBackStack(null)
-                    .commit();
-
-            // Hide ViewPager and show fragment container
-            requireActivity().findViewById(R.id.view_pager).setVisibility(View.GONE);
-            requireActivity().findViewById(R.id.fragment_container).setVisibility(View.VISIBLE);
+            navigateToProductListFragment(fragment);
         });
         rvCategories.setAdapter(categoryAdapter);
+    }
+
+    private void setupViewAllActions() {
+        if (tvViewAllNewProducts != null) {
+            tvViewAllNewProducts.setOnClickListener(v -> {
+                Log.d(TAG, "📌 View all New Products clicked");
+                navigateToProductListFragment(ProductListFragment.newInstanceForNewProducts());
+            });
+        }
+
+        if (tvViewAllBestSellers != null) {
+            tvViewAllBestSellers.setOnClickListener(v -> {
+                Log.d(TAG, "📌 View all Best Sellers clicked");
+                navigateToProductListFragment(ProductListFragment.newInstanceForBestSellers());
+            });
+        }
     }
 
     private void setupProductRecyclerView() {
@@ -141,6 +156,8 @@ public class HomeFragment extends Fragment {
             Log.d(TAG, "🛍️ New Product clicked: " + product.getProductName());
             navigateToProductDetail(product.getProductId());
         });
+
+        productAdapter.setOnHeartClickListener(this::toggleSavedItem);
 
         rvProducts.setAdapter(productAdapter);
     }
@@ -156,7 +173,37 @@ public class HomeFragment extends Fragment {
             navigateToProductDetail(product.getProductId());
         });
 
+        bestSellerAdapter.setOnHeartClickListener(this::toggleSavedItem);
+
         rvBestSellers.setAdapter(bestSellerAdapter);
+    }
+
+    private void toggleSavedItem(Product product, int position) {
+        if (!AuthUiHelper.requireLogin(this, R.string.login_required_title, R.string.login_required_favorite_message)) {
+            return;
+        }
+
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null || product == null || product.getProductId() == null) {
+            Toast.makeText(getContext(), "Unable to save item right now.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String docId = userId + "_" + product.getProductId();
+        db.collection("saved_items").document(docId).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot.exists()) {
+                        db.collection("saved_items").document(docId).delete()
+                                .addOnSuccessListener(unused -> Toast.makeText(getContext(), "Removed from saved items", Toast.LENGTH_SHORT).show());
+                    } else {
+                        java.util.Map<String, Object> savedData = new java.util.HashMap<>();
+                        savedData.put("userId", userId);
+                        savedData.put("productId", product.getProductId());
+
+                        db.collection("saved_items").document(docId).set(savedData)
+                                .addOnSuccessListener(unused -> Toast.makeText(getContext(), "Saved successfully", Toast.LENGTH_SHORT).show());
+                    }
+                });
     }
 
     private void navigateToProductDetail(String productId) {
@@ -176,6 +223,20 @@ public class HomeFragment extends Fragment {
                 .replace(R.id.fragment_container, detailFragment)
                 .addToBackStack(null)
                 .commit();
+    }
+
+    private void navigateToProductListFragment(ProductListFragment fragment) {
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
+
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
     }
 
     // ==================== LOAD FROM FIREBASE ====================

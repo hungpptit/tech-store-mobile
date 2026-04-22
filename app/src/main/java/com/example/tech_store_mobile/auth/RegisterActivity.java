@@ -8,6 +8,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Patterns;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,6 +18,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.UserProfileSyncHelper;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -32,14 +35,13 @@ import com.google.firebase.auth.GoogleAuthProvider;
 
 import java.util.Locale;
 
-import com.example.tech_store_mobile.utils.UserProfileSyncHelper;
-
 public class RegisterActivity extends AppCompatActivity {
 
     private TextInputLayout tipRegisterName, tipRegisterEmail, tipRegisterPassword;
     private TextInputEditText edtRegisterName, edtRegisterEmail, edtRegisterPassword;
     private MaterialButton btnSignUp;
-    private FirebaseAuth mAuth;
+    private ImageView btnAuthBack;
+    private final FirebaseAuth mAuth = AuthManager.getAuth();
     private GoogleSignInClient googleSignInClient;
     private ActivityResultLauncher<Intent> googleSignInLauncher;
 
@@ -48,7 +50,6 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        mAuth = FirebaseAuth.getInstance();
         configureGoogleSignIn();
         bindViews();
         setupListeners();
@@ -64,11 +65,16 @@ public class RegisterActivity extends AppCompatActivity {
         edtRegisterEmail = findViewById(R.id.edtRegisterEmail);
         edtRegisterPassword = findViewById(R.id.edtRegisterPassword);
         btnSignUp = findViewById(R.id.btnSignUp);
+        btnAuthBack = findViewById(R.id.btnAuthBack);
     }
 
     private void setupListeners() {
         if (btnSignUp != null) {
             btnSignUp.setOnClickListener(v -> attemptSignUp());
+        }
+
+        if (btnAuthBack != null) {
+            btnAuthBack.setOnClickListener(v -> finish());
         }
 
         View btnGoogleRegister = findViewById(R.id.btnGoogleRegister);
@@ -187,9 +193,9 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     setLoading(false);
                     if (task.isSuccessful()) {
-                        if (mAuth.getCurrentUser() != null) {
+                        if (AuthManager.getCurrentUser() != null) {
                             UserProfileSyncHelper.syncEmailPasswordUserProfile(
-                                    mAuth.getCurrentUser().getUid(),
+                                    AuthManager.getCurrentUser().getUid(),
                                     username,
                                     email,
                                     new UserProfileSyncHelper.SyncCallback() {
@@ -296,9 +302,9 @@ public class RegisterActivity extends AppCompatActivity {
         mAuth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null))
                 .addOnCompleteListener(this, task -> {
                     setLoading(false);
-                    if (task.isSuccessful() && mAuth.getCurrentUser() != null) {
+                    if (task.isSuccessful() && AuthManager.getCurrentUser() != null) {
                         UserProfileSyncHelper.syncGoogleUserProfile(
-                                mAuth.getCurrentUser().getUid(),
+                                AuthManager.getCurrentUser().getUid(),
                                 displayName,
                                 email,
                                 avatarUrl,

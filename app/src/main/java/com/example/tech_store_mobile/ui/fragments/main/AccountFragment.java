@@ -14,9 +14,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
 import com.google.android.material.button.MaterialButton;
-import com.google.firebase.auth.FirebaseAuth;
 
 public class AccountFragment extends Fragment {
 
@@ -73,7 +73,7 @@ public class AccountFragment extends Fragment {
         setupMenuItem(logoutView, "Logout", R.drawable.logout);
         if (logoutView != null) {
             logoutView.setOnClickListener(v -> {
-                FirebaseAuth.getInstance().signOut();
+                AuthManager.signOut();
                 renderAuthState();
                 Toast.makeText(requireContext(), R.string.auth_logout_success, Toast.LENGTH_SHORT).show();
             });
@@ -136,7 +136,7 @@ public class AccountFragment extends Fragment {
     }
 
     private void renderAuthState() {
-        boolean loggedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
+        boolean loggedIn = AuthManager.isLoggedIn();
 
         if (accountContentContainer != null) {
             accountContentContainer.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
