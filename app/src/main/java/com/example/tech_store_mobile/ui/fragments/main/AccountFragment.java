@@ -44,7 +44,11 @@ public class AccountFragment extends Fragment {
         });
 
         // 4. Payment Methods
-        setupMenuItem(view.findViewById(R.id.item_payment_methods), "Payment Methods", R.drawable.card);
+        View paymentView = view.findViewById(R.id.item_payment_methods);
+        setupMenuItem(paymentView, "Payment Methods", R.drawable.card);
+        paymentView.setOnClickListener(v -> {
+            replaceFragment(new PaymentMethodFragment());
+        });
 
         // 5. Help Center
         setupMenuItem(view.findViewById(R.id.item_help_center), "Help Center", R.drawable.headphones);
@@ -73,13 +77,13 @@ public class AccountFragment extends Fragment {
         // 1. Tìm các View ở Activity
         View container = getActivity().findViewById(R.id.fragment_container);
         View viewPager = getActivity().findViewById(R.id.view_pager);
-        View bottomNav = getActivity().findViewById(R.id.bottom_navigation); // Thêm dòng này
+        View bottomNav = getActivity().findViewById(R.id.bottom_navigation);
 
         if (container != null && viewPager != null && bottomNav != null) {
             // 2. Hiện container, ẩn ViewPager và ẩn Bottom Navigation
             container.setVisibility(View.VISIBLE);
             viewPager.setVisibility(View.GONE);
-            bottomNav.setVisibility(View.GONE); // ẨN THANH MENU DƯỚI
+            bottomNav.setVisibility(View.GONE);
         }
 
         // 3. Chuyển Fragment
