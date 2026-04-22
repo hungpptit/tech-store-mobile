@@ -30,6 +30,10 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.GoogleAuthProvider;
 
+import java.util.Locale;
+
+import com.example.tech_store_mobile.utils.UserProfileSyncHelper;
+
 public class RegisterActivity extends AppCompatActivity {
 
     private TextInputLayout tipRegisterName, tipRegisterEmail, tipRegisterPassword;
@@ -106,7 +110,7 @@ public class RegisterActivity extends AppCompatActivity {
                 String email = s.toString().trim();
                 tipRegisterEmail.setError(null); // Cứ gõ là xóa lỗi đỏ cũ
 
-                if (Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                if (isValidGmailAddress(email)) {
                     tipRegisterEmail.setBoxStrokeColor(Color.parseColor("#4CAF50"));
                     tipRegisterEmail.setEndIconDrawable(R.drawable.check_circle);
                     tipRegisterEmail.setEndIconTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50")));
@@ -138,9 +142,9 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void attemptSignUp() {
-        String username = edtRegisterName.getText().toString().trim();
-        String email = edtRegisterEmail.getText().toString().trim();
-        String password = edtRegisterPassword.getText().toString();
+        String username = edtRegisterName.getText() != null ? edtRegisterName.getText().toString().trim() : "";
+        String email = edtRegisterEmail.getText() != null ? edtRegisterEmail.getText().toString().trim() : "";
+        String password = edtRegisterPassword.getText() != null ? edtRegisterPassword.getText().toString() : "";
 
         // 1. Reset lỗi cũ
         tipRegisterName.setError(null);
@@ -162,6 +166,9 @@ public class RegisterActivity extends AppCompatActivity {
         } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             tipRegisterEmail.setError("Invalid email format");
             isValid = false;
+        } else if (!isGmailAddress(email)) {
+            tipRegisterEmail.setError(getString(R.string.auth_error_email_gmail_only));
+            isValid = false;
         }
 
         // 4. Check Password
@@ -180,11 +187,38 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     setLoading(false);
                     if (task.isSuccessful()) {
-                        Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(this, MainActivity.class);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                        startActivity(intent);
-                        finish();
+                        if (mAuth.getCurrentUser() != null) {
+                            UserProfileSyncHelper.syncEmailPasswordUserProfile(
+                                    mAuth.getCurrentUser().getUid(),
+                                    username,
+                                    email,
+                                    new UserProfileSyncHelper.SyncCallback() {
+                                        @Override
+                                        public void onSuccess() {
+                                            Toast.makeText(RegisterActivity.this, "Account created successfully!", Toast.LENGTH_SHORT).show();
+                                            Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                            startActivity(intent);
+                                            finish();
+                                        }
+
+                                        @Override
+                                        public void onFailure(Exception exception) {
+                                            Toast.makeText(RegisterActivity.this, "Saved auth account, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                                            Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                            startActivity(intent);
+                                            finish();
+                                        }
+                                    }
+                            );
+                        } else {
+                            Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(this, MainActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+                        }
                     } else {
                         // 5. Bắt lỗi trùng Email từ Firebase
                         Exception exception = task.getException();
@@ -236,22 +270,57 @@ public class RegisterActivity extends AppCompatActivity {
         Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
         try {
             GoogleSignInAccount account = task.getResult(ApiException.class);
-            if (account != null) firebaseAuthWithGoogle(account.getIdToken());
+            if (account != null) {
+                String email = account.getEmail();
+                if (!isGmailAddress(email)) {
+                    Toast.makeText(this, R.string.auth_error_google_gmail_only, Toast.LENGTH_LONG).show();
+                    if (googleSignInClient != null) {
+                        googleSignInClient.signOut();
+                    }
+                    return;
+                }
+                firebaseAuthWithGoogle(
+                        account.getIdToken(),
+                        account.getDisplayName(),
+                        email,
+                        account.getPhotoUrl() != null ? account.getPhotoUrl().toString() : null
+                );
+            }
         } catch (ApiException e) {
             Toast.makeText(this, "Google Error", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void firebaseAuthWithGoogle(String idToken) {
+    private void firebaseAuthWithGoogle(String idToken, String displayName, String email, String avatarUrl) {
         setLoading(true);
         mAuth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null))
                 .addOnCompleteListener(this, task -> {
                     setLoading(false);
-                    if (task.isSuccessful()) {
-                        Intent intent = new Intent(this, MainActivity.class);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                        startActivity(intent);
-                        finish();
+                    if (task.isSuccessful() && mAuth.getCurrentUser() != null) {
+                        UserProfileSyncHelper.syncGoogleUserProfile(
+                                mAuth.getCurrentUser().getUid(),
+                                displayName,
+                                email,
+                                avatarUrl,
+                                new UserProfileSyncHelper.SyncCallback() {
+                                    @Override
+                                    public void onSuccess() {
+                                        Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                        startActivity(intent);
+                                        finish();
+                                    }
+
+                                    @Override
+                                    public void onFailure(Exception exception) {
+                                        Toast.makeText(RegisterActivity.this, "Saved Google sign-in, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                                        Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                        startActivity(intent);
+                                        finish();
+                                    }
+                                }
+                        );
                     }
                 });
     }
@@ -261,5 +330,17 @@ public class RegisterActivity extends AppCompatActivity {
         btnSignUp.setEnabled(!isLoading);
         btnSignUp.setText(isLoading ? "Loading..." : "Create Account");
         btnSignUp.setAlpha(isLoading ? 0.7f : 1f);
+    }
+
+    private boolean isValidGmailAddress(String email) {
+        return isEmailFormatValid(email) && isGmailAddress(email);
+    }
+
+    private boolean isEmailFormatValid(String email) {
+        return email != null && Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+
+    private boolean isGmailAddress(String email) {
+        return email != null && email.toLowerCase(Locale.US).endsWith("@gmail.com");
     }
 }

@@ -117,15 +117,9 @@ public class AccountFragment extends Fragment {
         }
 
         // 1. Tìm các View ở Activity
-<<<<<<< HEAD
         View container = requireActivity().findViewById(R.id.fragment_container);
         View viewPager = requireActivity().findViewById(R.id.view_pager);
         View bottomNav = requireActivity().findViewById(R.id.bottom_navigation); // Thêm dòng này
-=======
-        View container = getActivity().findViewById(R.id.fragment_container);
-        View viewPager = getActivity().findViewById(R.id.view_pager);
-        View bottomNav = getActivity().findViewById(R.id.bottom_navigation);
->>>>>>> origin/QuyCoding
 
         if (container != null && viewPager != null && bottomNav != null) {
             // 2. Hiện container, ẩn ViewPager và ẩn Bottom Navigation

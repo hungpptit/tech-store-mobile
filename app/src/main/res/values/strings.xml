@@ -48,11 +48,13 @@
     <string name="guest_state_action">Sign in</string>
     <string name="no_colors_available">No colors available</string>
     <string name="auth_login_button">Login</string>
-    <string name="auth_loading">Signing in...</string>
+    <string name="auth_loading">Signing in…</string>
     <string name="auth_login_success">Login successful</string>
     <string name="auth_login_failed">Login failed. Please try again.</string>
     <string name="auth_error_email_required">Please enter your email</string>
     <string name="auth_error_email_invalid">Please enter a valid email address</string>
+    <string name="auth_error_email_gmail_only">Please use a Gmail address ending with @gmail.com</string>
+    <string name="auth_error_google_gmail_only">Please sign in with a Gmail account ending with @gmail.com</string>
     <string name="auth_error_password_required">Please enter your password</string>
     <string name="auth_error_username_required">Please enter your username</string>
     <string name="auth_error_password_too_short">Password must be at least 6 characters</string>

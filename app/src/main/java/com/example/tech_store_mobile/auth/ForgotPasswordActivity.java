@@ -13,6 +13,8 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.util.Locale;
+
 public class ForgotPasswordActivity extends AppCompatActivity {
 
 	private TextInputEditText edtForgotEmail;
@@ -68,6 +70,12 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 			return;
 		}
 
+		if (!isGmailAddress(email)) {
+			edtForgotEmail.setError(getString(R.string.auth_error_email_gmail_only));
+			edtForgotEmail.requestFocus();
+			return;
+		}
+
 		setLoading(true);
 		mAuth.sendPasswordResetEmail(email)
 				.addOnCompleteListener(task -> {
@@ -92,5 +100,9 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 		btnResetPassword.setEnabled(!isLoading);
 		btnResetPassword.setText(isLoading ? R.string.auth_loading : R.string.auth_send_request_button);
 		btnResetPassword.setAlpha(isLoading ? 0.7f : 1f);
+	}
+
+	private boolean isGmailAddress(String email) {
+		return email != null && email.toLowerCase(Locale.US).endsWith("@gmail.com");
 	}
 }
