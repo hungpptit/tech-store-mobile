@@ -155,6 +155,11 @@ public class CartFragment extends Fragment {
                 }
             }
         });
+        cartAdapter.setOnCartItemClickListener(item -> {
+            if (item != null && item.getProductId() != null && !item.getProductId().trim().isEmpty()) {
+                navigateToProductDetail(item.getProductId());
+            }
+        });
         rvCart.setAdapter(cartAdapter);
     }
 
@@ -295,6 +300,29 @@ public class CartFragment extends Fragment {
                 }
             }
         });
+    }
+
+    private void navigateToProductDetail(String productId) {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+
+        if (viewPager != null) {
+            viewPager.setVisibility(View.GONE);
+        }
+        if (fragmentContainer != null) {
+            fragmentContainer.setVisibility(View.VISIBLE);
+        }
+
+        ProductDetailFragment detailFragment = ProductDetailFragment.newInstance(productId);
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, detailFragment)
+                .addToBackStack(null)
+                .commit();
     }
 
 

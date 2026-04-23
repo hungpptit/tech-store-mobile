@@ -71,6 +71,7 @@
         android:background="@android:color/white"
         android:gravity="center"
         android:orientation="vertical"
+        android:layout_marginTop="56dp"
         android:padding="24dp"
         android:visibility="gone">
 
@@ -110,6 +111,7 @@
         android:background="@android:color/white"
         android:gravity="center"
         android:orientation="vertical"
+        android:layout_marginTop="56dp"
         android:padding="24dp"
         android:visibility="gone">
 

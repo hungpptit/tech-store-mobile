@@ -16,6 +16,7 @@ import android.widget.Toast;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
+import com.example.tech_store_mobile.utils.MainNavigationHelper;
 import com.google.android.material.button.MaterialButton;
 
 public class AccountFragment extends Fragment {
@@ -37,9 +38,14 @@ public class AccountFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        ImageView btnBack = view.findViewById(R.id.btn_back_search);
         accountContentContainer = view.findViewById(R.id.accountContentContainer);
         accountGuestState = view.findViewById(R.id.accountGuestState);
         MaterialButton btnAccountSignIn = view.findViewById(R.id.btnAccountSignIn);
+
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> navigateBack());
+        }
 
         if (btnAccountSignIn != null) {
             btnAccountSignIn.setOnClickListener(v -> AuthUiHelper.openLogin(this));
@@ -61,9 +67,7 @@ public class AccountFragment extends Fragment {
         // 4. Payment Methods
         View paymentView = view.findViewById(R.id.item_payment_methods);
         setupMenuItem(paymentView, "Payment Methods", R.drawable.card);
-        paymentView.setOnClickListener(v -> {
-            replaceFragment(new PaymentMethodFragment());
-        });
+        paymentView.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
 
         // 5. Help Center
         setupMenuItem(view.findViewById(R.id.item_help_center), "Help Center", R.drawable.headphones);
@@ -144,6 +148,10 @@ public class AccountFragment extends Fragment {
         if (accountGuestState != null) {
             accountGuestState.setVisibility(loggedIn ? View.GONE : View.VISIBLE);
         }
+    }
+
+    private void navigateBack() {
+        MainNavigationHelper.navigateBackToHome(this);
     }
 
 }

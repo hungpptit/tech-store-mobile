@@ -15,12 +15,6 @@
         android:orientation="vertical">
 
         <LinearLayout
-            android:id="@+id/accountContentContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginBottom="20dp"
@@ -59,6 +53,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/accountContentContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
@@ -83,7 +78,6 @@
 
             <include android:id="@+id/item_logout" layout="@layout/item_menu_account" />
 
-        </LinearLayout>
 
         </LinearLayout>
 

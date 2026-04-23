@@ -21,6 +21,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final List<CartEntry> cartItems;
     private final OnCartActionListener actionListener;
+    private OnCartItemClickListener itemClickListener;
 
     public CartAdapter(List<CartEntry> cartItems, OnCartActionListener actionListener) {
         this.cartItems = cartItems;
@@ -35,10 +36,6 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final String imageUrl;
         private final double priceAtAdded;
         private int quantity;
-
-        public CartEntry(String productId, String productName, String selectedColor, int imageResId, double priceAtAdded, int quantity) {
-            this(productId, productName, selectedColor, imageResId, null, priceAtAdded, quantity);
-        }
 
         public CartEntry(String productId, String productName, String selectedColor, String imageUrl, double priceAtAdded, int quantity) {
             this(productId, productName, selectedColor, null, imageUrl, priceAtAdded, quantity);
@@ -69,6 +66,14 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onIncreaseQuantity(int position);
         void onDecreaseQuantity(int position);
         void onDeleteItem(int position);
+    }
+
+    public interface OnCartItemClickListener {
+        void onCartItemClick(CartEntry item);
+    }
+
+    public void setOnCartItemClickListener(OnCartItemClickListener itemClickListener) {
+        this.itemClickListener = itemClickListener;
     }
 
     @Override
@@ -117,13 +122,29 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         holder.tvQuantity.setText(String.valueOf(item.getQuantity()));
 
         holder.btnDelete.setOnClickListener(v -> {
-            if (actionListener != null) actionListener.onDeleteItem(position);
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && actionListener != null) {
+                actionListener.onDeleteItem(adapterPosition);
+            }
         });
         holder.btnDecrease.setOnClickListener(v -> {
-            if (actionListener != null) actionListener.onDecreaseQuantity(position);
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && actionListener != null) {
+                actionListener.onDecreaseQuantity(adapterPosition);
+            }
         });
         holder.btnIncrease.setOnClickListener(v -> {
-            if (actionListener != null) actionListener.onIncreaseQuantity(position);
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && actionListener != null) {
+                actionListener.onIncreaseQuantity(adapterPosition);
+            }
+        });
+
+        holder.itemView.setOnClickListener(v -> {
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && itemClickListener != null) {
+                itemClickListener.onCartItemClick(cartItems.get(adapterPosition));
+            }
         });
     }
 

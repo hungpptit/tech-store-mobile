@@ -14,11 +14,11 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.tech_store_mobile.Model.Product;
-import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.ProductAdapter;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
+import com.example.tech_store_mobile.utils.MainNavigationHelper;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -84,6 +84,11 @@ public class SavedFragment extends Fragment {
         rvSaved.setLayoutManager(new GridLayoutManager(getContext(), 2));
         rvSaved.setNestedScrollingEnabled(true);
         savedAdapter = new ProductAdapter(savedProducts, true);
+        savedAdapter.setOnProductClickListener(product -> {
+            if (product != null && product.getProductId() != null && !product.getProductId().trim().isEmpty()) {
+                navigateToProductDetail(product.getProductId());
+            }
+        });
         rvSaved.setAdapter(savedAdapter);
     }
 
@@ -196,6 +201,7 @@ public class SavedFragment extends Fragment {
 
                     Product product = productSnapshot.toObject(Product.class);
                     if (product != null) {
+                        product.setProductId(productSnapshot.getId());
                         savedProducts.add(product);
                         loadedProductIds.add(productId);
                     }
@@ -208,16 +214,29 @@ public class SavedFragment extends Fragment {
     }
 
     private void setupBackAction() {
-        btnBack.setOnClickListener(v -> {
-            if (isAdded()) {
-                if (requireActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
-                    requireActivity().getSupportFragmentManager().popBackStack();
-                } else if (requireActivity() instanceof MainActivity) {
-                    requireActivity().findViewById(R.id.view_pager).setVisibility(View.VISIBLE);
-                    requireActivity().findViewById(R.id.fragment_container).setVisibility(View.GONE);
-                    ((MainActivity) requireActivity()).syncBottomNavigationVisibility();
-                }
-            }
-        });
+        btnBack.setOnClickListener(v -> MainNavigationHelper.navigateBackToHome(this));
+    }
+
+    private void navigateToProductDetail(String productId) {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+
+        if (viewPager != null) {
+            viewPager.setVisibility(View.GONE);
+        }
+        if (fragmentContainer != null) {
+            fragmentContainer.setVisibility(View.VISIBLE);
+        }
+
+        ProductDetailFragment detailFragment = ProductDetailFragment.newInstance(productId);
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, detailFragment)
+                .addToBackStack(null)
+                .commit();
     }
 }
