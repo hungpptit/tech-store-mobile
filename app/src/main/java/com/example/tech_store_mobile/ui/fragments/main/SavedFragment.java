@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -89,6 +90,7 @@ public class SavedFragment extends Fragment {
                 navigateToProductDetail(product.getProductId());
             }
         });
+        savedAdapter.setOnHeartClickListener(this::removeSavedItem);
         rvSaved.setAdapter(savedAdapter);
     }
 
@@ -211,6 +213,45 @@ public class SavedFragment extends Fragment {
                     if (generation != savedLoadGeneration) return;
                     loadSavedItemAtIndex(docs, index + 1, generation);
                 });
+    }
+
+    private void removeSavedItem(Product product, int position) {
+        if (position < 0 || position >= savedProducts.size()) {
+            return;
+        }
+
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (product == null || product.getProductId() == null || product.getProductId().trim().isEmpty()) {
+            Toast.makeText(getContext(), "Không thể bỏ lưu sản phẩm này.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String docId = userId + "_" + product.getProductId();
+        db.collection("saved_items").document(docId).delete()
+                .addOnSuccessListener(unused -> {
+                    if (position < savedProducts.size()) {
+                        savedProducts.remove(position);
+                        loadedProductIds.remove(product.getProductId());
+                        savedAdapter.notifyItemRemoved(position);
+                        if (position < savedProducts.size()) {
+                            savedAdapter.notifyItemRangeChanged(position, savedProducts.size() - position);
+                        }
+                    }
+
+                    if (savedProducts.isEmpty()) {
+                        if (rvSaved != null) rvSaved.setVisibility(View.GONE);
+                        if (emptyStateContainer != null) emptyStateContainer.setVisibility(View.VISIBLE);
+                    } else {
+                        if (rvSaved != null) rvSaved.setVisibility(View.VISIBLE);
+                        if (emptyStateContainer != null) emptyStateContainer.setVisibility(View.GONE);
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(getContext(), "Không thể xóa khỏi danh sách đã lưu: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     private void setupBackAction() {

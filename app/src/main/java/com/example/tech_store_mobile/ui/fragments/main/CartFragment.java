@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -140,19 +141,7 @@ public class CartFragment extends Fragment {
 
             @Override
             public void onDeleteItem(int position) {
-                if (position >= 0 && position < cartEntries.size()) {
-                    cartEntries.remove(position);
-                    if (cartEntries.isEmpty()) {
-                        cartAdapter.notifyItemRemoved(position);
-                        cartAdapter.notifyItemInserted(0);
-                    } else {
-                        cartAdapter.notifyItemRemoved(position);
-                        if (position < cartEntries.size()) {
-                            cartAdapter.notifyItemRangeChanged(position, cartEntries.size() - position);
-                        }
-                    }
-                    updateCartSummary();
-                }
+                removeCartItem(position);
             }
         });
         cartAdapter.setOnCartItemClickListener(item -> {
@@ -282,6 +271,38 @@ public class CartFragment extends Fragment {
         if (tvVatValue != null) tvVatValue.setText(String.format(java.util.Locale.US, "$ %.2f", vat));
         if (tvShippingValue != null) tvShippingValue.setText(String.format(java.util.Locale.US, "$ %.2f", shipping));
         if (tvTotalValue != null) tvTotalValue.setText(String.format(java.util.Locale.US, "$ %.2f", total));
+    }
+
+    private void removeCartItem(int position) {
+        if (position < 0 || position >= cartEntries.size()) {
+            return;
+        }
+
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        CartAdapter.CartEntry item = cartEntries.get(position);
+        if (item == null || item.getProductId() == null || item.getProductId().trim().isEmpty()) {
+            Toast.makeText(getContext(), "Không thể xóa sản phẩm này.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String selectedColor = item.getSelectedColor() != null ? item.getSelectedColor() : "";
+        String docId = userId + "_" + item.getProductId() + "_" + selectedColor;
+
+        db.collection("carts").document(docId).delete()
+                .addOnSuccessListener(unused -> {
+                    cartEntries.remove(position);
+                    cartAdapter.notifyItemRemoved(position);
+                    if (position < cartEntries.size()) {
+                        cartAdapter.notifyItemRangeChanged(position, cartEntries.size() - position);
+                    }
+                    updateCartSummary();
+                })
+                .addOnFailureListener(e -> Toast.makeText(getContext(), "Không thể xóa khỏi giỏ hàng: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     private void setupBackAction() {
