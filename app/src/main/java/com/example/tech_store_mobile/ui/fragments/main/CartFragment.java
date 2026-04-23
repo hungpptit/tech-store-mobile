@@ -11,6 +11,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -40,6 +41,10 @@ public class CartFragment extends Fragment {
     private TextView tvShippingValue;
     private TextView tvTotalValue;
     private FirebaseFirestore db;
+    private double currentSubtotal = 0.0;
+    private double currentVat = 0.0;
+    private double currentShipping = 0.0;
+    private double currentTotal = 0.0;
 
     private final List<CartAdapter.CartEntry> cartEntries = new ArrayList<>();
     private CartAdapter cartAdapter;
@@ -107,9 +112,7 @@ public class CartFragment extends Fragment {
         }
 
         if (btnCheckout != null) {
-            btnCheckout.setOnClickListener(v -> {
-                // Temporary no-op until checkout flow exists
-            });
+            btnCheckout.setOnClickListener(v -> openCheckoutScreen());
         }
     }
 
@@ -267,10 +270,37 @@ public class CartFragment extends Fragment {
         double shipping = hasItems ? 80.0 : 0.0;
         double total = subtotal + vat + shipping;
 
+        currentSubtotal = subtotal;
+        currentVat = vat;
+        currentShipping = shipping;
+        currentTotal = total;
+
         if (tvSubtotalValue != null) tvSubtotalValue.setText(String.format(java.util.Locale.US, "$ %.2f", subtotal));
         if (tvVatValue != null) tvVatValue.setText(String.format(java.util.Locale.US, "$ %.2f", vat));
         if (tvShippingValue != null) tvShippingValue.setText(String.format(java.util.Locale.US, "$ %.2f", shipping));
         if (tvTotalValue != null) tvTotalValue.setText(String.format(java.util.Locale.US, "$ %.2f", total));
+    }
+
+    private void openCheckoutScreen() {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+
+        if (viewPager != null) {
+            viewPager.setVisibility(View.GONE);
+        }
+        if (fragmentContainer != null) {
+            fragmentContainer.setVisibility(View.VISIBLE);
+        }
+
+        CheckoutFragment checkoutFragment = CheckoutFragment.newInstance(currentSubtotal, currentVat, currentShipping, currentTotal);
+        FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.fragment_container, checkoutFragment);
+        transaction.addToBackStack(null);
+        transaction.commit();
     }
 
     private void removeCartItem(int position) {

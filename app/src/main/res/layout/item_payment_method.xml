@@ -20,7 +20,7 @@
             android:layout_height="24dp"
             android:layout_centerVertical="true"
             android:scaleType="fitCenter"
-            android:src="@drawable/card" />
+            android:src="@drawable/card_1" />
 
         <LinearLayout
             android:layout_width="match_parent"

@@ -76,9 +76,9 @@ public class PaymentMethodAdapter extends RecyclerView.Adapter<PaymentMethodAdap
 
         // Hiển thị logo dựa trên cardType
         if ("VISA".equalsIgnoreCase(payment.getCardType())) {
-            holder.ivCardLogo.setImageResource(R.drawable.card); // Thay bằng ic_visa nếu có
+            holder.ivCardLogo.setImageResource(R.drawable.ic_visa); // Thay bằng ic_visa nếu có
         } else {
-            holder.ivCardLogo.setImageResource(R.drawable.card); // Thay bằng ic_mastercard nếu có
+            holder.ivCardLogo.setImageResource(R.drawable.ic_mastercard); // Thay bằng ic_mastercard nếu có
         }
 
         holder.itemView.setOnClickListener(v -> {
