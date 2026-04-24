@@ -22,9 +22,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
 
+import com.example.tech_store_mobile.Model.CreateCardPaymentMethodRequest;
+import com.example.tech_store_mobile.Model.CreateCardPaymentMethodResponse;
 import com.example.tech_store_mobile.Model.PaymentMethod;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.StripeCardApiClient;
 import com.example.tech_store_mobile.utils.StripeConfig;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
@@ -46,6 +49,7 @@ public class AddCardFragment extends Fragment {
     private AppCompatButton btnAddCard;
     private FirebaseFirestore db;
     private Stripe stripe;
+    private final StripeCardApiClient stripeCardApiClient = new StripeCardApiClient();
 
     @Nullable
     @Override
@@ -141,7 +145,32 @@ public class AddCardFragment extends Fragment {
                     return;
                 }
 
-                persistPaymentMethod(userId, token, cardHolderName, expiryDate, isDefault);
+                CreateCardPaymentMethodRequest request = new CreateCardPaymentMethodRequest(
+                        userId,
+                        token.getId(),
+                        cardHolderName
+                );
+
+                stripeCardApiClient.createCardPaymentMethod(request, new StripeCardApiClient.Callback() {
+                    @Override
+                    public void onSuccess(CreateCardPaymentMethodResponse response) {
+                        if (!isAdded()) {
+                            return;
+                        }
+
+                        persistPaymentMethod(userId, response, cardHolderName, expiryDate, isDefault);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        if (!isAdded()) {
+                            return;
+                        }
+
+                        restoreAddCardButton();
+                        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
 
             @Override
@@ -157,17 +186,19 @@ public class AddCardFragment extends Fragment {
         });
     }
 
-    private void persistPaymentMethod(String userId, Token token, String cardHolderName,
+    private void persistPaymentMethod(String userId, CreateCardPaymentMethodResponse response, String cardHolderName,
                                       String expiryDate, boolean isDefault) {
-        String paymentId = token.getId();
-        com.stripe.android.model.Card stripeCard = token.getCard();
-        String brand = stripeCard != null
-                ? stripeCard.getBrand().getDisplayName().toUpperCase(Locale.US)
+        String paymentId = response.getId();
+        String customerId = response.getCustomerId();
+        String brand = !TextUtils.isEmpty(response.getBrand())
+                ? response.getBrand().toUpperCase(Locale.US)
                 : detectCardBrand(etCardNumber.getText().toString().trim());
-        String last4 = stripeCard != null ? stripeCard.getLast4() : cardNumberLast4(etCardNumber.getText().toString().trim());
+        String last4 = !TextUtils.isEmpty(response.getLast4())
+                ? response.getLast4()
+                : cardNumberLast4(etCardNumber.getText().toString().trim());
         String maskedCardNumber = buildMaskedCardNumber(brand, last4);
-        String finalExpiryDate = stripeCard != null && stripeCard.getExpMonth() != null && stripeCard.getExpYear() != null
-                ? String.format(Locale.US, "%02d/%04d", stripeCard.getExpMonth(), stripeCard.getExpYear())
+        String finalExpiryDate = response.getExpMonth() != null && response.getExpYear() != null
+                ? String.format(Locale.US, "%02d/%04d", response.getExpMonth(), response.getExpYear())
                 : expiryDate;
 
         PaymentMethod newCard = new PaymentMethod(paymentId, userId, brand, maskedCardNumber, finalExpiryDate, cardHolderName, isDefault);
@@ -187,6 +218,9 @@ public class AddCardFragment extends Fragment {
 
                         Map<String, Object> userData = new HashMap<>();
                         userData.put("defaultPaymentId", paymentId);
+                        if (!TextUtils.isEmpty(customerId)) {
+                            userData.put("stripeCustomerId", customerId);
+                        }
                         batch.set(db.collection("users").document(userId), userData, SetOptions.merge());
 
                         batch.commit()
@@ -204,7 +238,22 @@ public class AddCardFragment extends Fragment {
                     });
         } else {
             db.collection("payment_methods").document(paymentId).set(newCard)
-                    .addOnSuccessListener(aVoid -> showSuccessDialog())
+                    .addOnSuccessListener(aVoid -> {
+                        if (!TextUtils.isEmpty(customerId)) {
+                            Map<String, Object> userData = new HashMap<>();
+                            userData.put("stripeCustomerId", customerId);
+                            db.collection("users").document(userId).set(userData, SetOptions.merge())
+                                    .addOnSuccessListener(unused -> showSuccessDialog())
+                                    .addOnFailureListener(e -> {
+                                        restoreAddCardButton();
+                                        Log.e(TAG, "Failed to save customer id", e);
+                                        Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                    });
+                            return;
+                        }
+
+                        showSuccessDialog();
+                    })
                     .addOnFailureListener(e -> {
                         restoreAddCardButton();
                         Log.e(TAG, "Failed to save payment method", e);

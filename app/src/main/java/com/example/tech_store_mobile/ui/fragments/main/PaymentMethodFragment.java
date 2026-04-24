@@ -48,16 +48,12 @@ public class PaymentMethodFragment extends Fragment {
         setupRecyclerView();
         loadPaymentMethods();
 
-        view.findViewById(R.id.btn_back_payment).setOnClickListener(v -> requireActivity().onBackPressed());
+        view.findViewById(R.id.btn_back_payment).setOnClickListener(v -> requireActivity().getOnBackPressedDispatcher().onBackPressed());
 
         // Xử lý khi bấm vào nút Add New Card
-        view.findViewById(R.id.btn_add_new_card).setOnClickListener(v -> {
-            replaceFragment(new AddCardFragment());
-        });
-        
-        view.findViewById(R.id.btn_apply_payment).setOnClickListener(v -> {
-            handleApplyPayment();
-        });
+        view.findViewById(R.id.btn_add_new_card).setOnClickListener(v -> replaceFragment(new AddCardFragment()));
+
+        view.findViewById(R.id.btn_apply_payment).setOnClickListener(v -> handleApplyPayment());
 
         return view;
     }
@@ -97,8 +93,13 @@ public class PaymentMethodFragment extends Fragment {
             return;
         }
 
+        if (selected.getPaymentId() == null || !selected.getPaymentId().startsWith("pm_")) {
+            Toast.makeText(getContext(), "Thẻ cũ không còn hợp lệ để làm mặc định. Hãy thêm lại thẻ mới.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         if (Boolean.TRUE.equals(selected.getIsDefault())) {
-            requireActivity().onBackPressed();
+            requireActivity().getOnBackPressedDispatcher().onBackPressed();
             return;
         }
 
@@ -127,7 +128,7 @@ public class PaymentMethodFragment extends Fragment {
 
                     batch.commit().addOnSuccessListener(aVoid -> {
                         Toast.makeText(getContext(), "Default payment updated", Toast.LENGTH_SHORT).show();
-                        requireActivity().onBackPressed();
+                        requireActivity().getOnBackPressedDispatcher().onBackPressed();
                     });
                 });
     }

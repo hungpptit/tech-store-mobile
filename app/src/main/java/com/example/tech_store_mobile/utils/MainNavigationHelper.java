@@ -4,6 +4,7 @@ import android.view.View;
 
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
 import androidx.viewpager.widget.ViewPager;
 
 import com.example.tech_store_mobile.MainActivity;
@@ -22,7 +23,7 @@ public final class MainNavigationHelper {
         FragmentActivity activity = fragment.requireActivity();
 
         if (fragment.getParentFragmentManager().getBackStackEntryCount() > 0) {
-            fragment.getParentFragmentManager().popBackStack();
+            fragment.getParentFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
             return;
         }
 

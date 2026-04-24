@@ -35,6 +35,42 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'tech-store-stripe-backend' });
 });
 
+async function findStripeCustomerByUserId(userId) {
+  let startingAfter = undefined;
+
+  while (true) {
+    const page = await stripe.customers.list({
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {})
+    });
+
+    const matchedCustomer = page.data.find(customer => customer?.metadata?.userId === userId);
+    if (matchedCustomer) {
+      return matchedCustomer;
+    }
+
+    if (!page.has_more || page.data.length === 0) {
+      return null;
+    }
+
+    startingAfter = page.data[page.data.length - 1].id;
+  }
+}
+
+async function getOrCreateStripeCustomer(userId, cardHolderName) {
+  const existingCustomer = await findStripeCustomerByUserId(userId);
+  if (existingCustomer) {
+    return existingCustomer;
+  }
+
+  return stripe.customers.create({
+    name: cardHolderName || undefined,
+    metadata: {
+      userId
+    }
+  });
+}
+
 app.post('/api/payments/create-payment-intent', async (req, res) => {
   try {
     if (!stripe) {
@@ -43,22 +79,56 @@ app.post('/api/payments/create-payment-intent', async (req, res) => {
 
     const { totalAmount, currency, userId, orderId, paymentMethod } = req.body || {};
     const normalizedAmount = Number(totalAmount);
+    const paymentMethodId = String(paymentMethod || '').trim();
 
     if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
       return res.status(400).json({ message: 'totalAmount must be a positive number.' });
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
+    if (!paymentMethodId) {
+      return res.status(400).json({ message: 'paymentMethod is required for saved-card checkout.' });
+    }
+
+    if (!paymentMethodId.startsWith('pm_')) {
+      return res.status(400).json({ message: 'paymentMethod must be a saved Stripe payment method (pm_).' });
+    }
+
+    const savedPaymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    if (!savedPaymentMethod) {
+      return res.status(404).json({ message: 'PaymentMethod not found.' });
+    }
+
+    let customerId = typeof savedPaymentMethod.customer === 'string' ? savedPaymentMethod.customer : savedPaymentMethod.customer?.id;
+    if (!customerId) {
+      return res.status(400).json({ message: 'PaymentMethod is not attached to a Customer yet. Please add the card again.' });
+    }
+
+    const customer = await stripe.customers.retrieve(customerId);
+    if (customer?.deleted) {
+      return res.status(400).json({ message: 'Customer was deleted. Please add the card again.' });
+    }
+
+    if (userId && customer?.metadata?.userId && customer.metadata.userId !== userId) {
+      return res.status(403).json({ message: 'PaymentMethod does not belong to this user.' });
+    }
+
+    const paymentIntentParams = {
       amount: Math.round(normalizedAmount * 100),
       currency: (currency || 'usd').toString().toLowerCase(),
-      payment_method_types: ['card'],
+      customer: customerId,
+      payment_method: paymentMethodId,
       description: `Tech Store order ${orderId || ''}`.trim(),
       metadata: {
         userId: userId || '',
         orderId: orderId || '',
-        paymentMethod: paymentMethod || 'card'
-      }
-    });
+        paymentMethod: paymentMethodId,
+        customerId
+      },
+      confirm: true,
+      payment_method_types: ['card']
+    };
+
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
 
     return res.json({
       id: paymentIntent.id,
@@ -83,23 +153,19 @@ app.post('/api/payment-methods/create-card', async (req, res) => {
       return res.status(500).json({ message: 'STRIPE_SECRET_KEY is not configured on the backend.' });
     }
 
-    const { userId, cardNumber, expMonth, expYear, cvc, cardHolderName } = req.body || {};
-    const normalizedCardNumber = String(cardNumber || '').replace(/\D+/g, '');
-    const normalizedExpMonth = Number(expMonth);
-    const normalizedExpYear = Number(expYear);
-    const normalizedCvc = String(cvc || '').trim();
+    const { userId, cardToken, cardHolderName } = req.body || {};
+    const normalizedCardToken = String(cardToken || '').trim();
 
-    if (!userId || !normalizedCardNumber || !Number.isFinite(normalizedExpMonth) || !Number.isFinite(normalizedExpYear) || !normalizedCvc) {
-      return res.status(400).json({ message: 'Missing required card fields.' });
+    if (!userId || !normalizedCardToken) {
+      return res.status(400).json({ message: 'Missing required card token.' });
     }
+
+    const customer = await getOrCreateStripeCustomer(userId, cardHolderName);
 
     const paymentMethod = await stripe.paymentMethods.create({
       type: 'card',
       card: {
-        number: normalizedCardNumber,
-        exp_month: normalizedExpMonth,
-        exp_year: normalizedExpYear,
-        cvc: normalizedCvc,
+        token: normalizedCardToken,
       },
       billing_details: {
         name: cardHolderName || ''
@@ -109,10 +175,13 @@ app.post('/api/payment-methods/create-card', async (req, res) => {
       }
     });
 
+    await stripe.paymentMethods.attach(paymentMethod.id, { customer: customer.id });
+
     const card = paymentMethod.card || {};
 
     return res.json({
       id: paymentMethod.id,
+      customerId: customer.id,
       brand: card.brand || '',
       last4: card.last4 || '',
       expMonth: card.exp_month || null,

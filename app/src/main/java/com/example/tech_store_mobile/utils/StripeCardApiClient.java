@@ -100,6 +100,7 @@ public class StripeCardApiClient {
         JsonObject object = element.getAsJsonObject();
         CreateCardPaymentMethodResponse response = new CreateCardPaymentMethodResponse();
         response.setId(readString(object, "id", "paymentMethodId", "payment_method_id"));
+        response.setCustomerId(readString(object, "customerId", "customer_id"));
         response.setBrand(readString(object, "brand", "cardBrand", "card_brand"));
         response.setLast4(readString(object, "last4", "cardLast4", "card_last4"));
         response.setCardHolderName(readString(object, "cardHolderName", "card_holder_name"));

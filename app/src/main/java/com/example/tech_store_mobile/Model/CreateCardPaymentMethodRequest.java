@@ -2,21 +2,15 @@ package com.example.tech_store_mobile.Model;
 
 public class CreateCardPaymentMethodRequest {
     private String userId;
-    private String cardNumber;
-    private Integer expMonth;
-    private Integer expYear;
-    private String cvc;
+    private String cardToken;
     private String cardHolderName;
 
     public CreateCardPaymentMethodRequest() {
     }
 
-    public CreateCardPaymentMethodRequest(String userId, String cardNumber, Integer expMonth, Integer expYear, String cvc, String cardHolderName) {
+    public CreateCardPaymentMethodRequest(String userId, String cardToken, String cardHolderName) {
         this.userId = userId;
-        this.cardNumber = sanitizeValue(cardNumber);
-        this.expMonth = expMonth;
-        this.expYear = expYear;
-        this.cvc = sanitizeValue(cvc);
+        this.cardToken = sanitizeValue(cardToken);
         this.cardHolderName = cardHolderName;
     }
 
@@ -28,36 +22,12 @@ public class CreateCardPaymentMethodRequest {
         this.userId = userId;
     }
 
-    public String getCardNumber() {
-        return cardNumber;
+    public String getCardToken() {
+        return cardToken;
     }
 
-    public void setCardNumber(String cardNumber) {
-        this.cardNumber = sanitizeValue(cardNumber);
-    }
-
-    public Integer getExpMonth() {
-        return expMonth;
-    }
-
-    public void setExpMonth(Integer expMonth) {
-        this.expMonth = expMonth;
-    }
-
-    public Integer getExpYear() {
-        return expYear;
-    }
-
-    public void setExpYear(Integer expYear) {
-        this.expYear = expYear;
-    }
-
-    public String getCvc() {
-        return cvc;
-    }
-
-    public void setCvc(String cvc) {
-        this.cvc = sanitizeValue(cvc);
+    public void setCardToken(String cardToken) {
+        this.cardToken = sanitizeValue(cardToken);
     }
 
     public String getCardHolderName() {

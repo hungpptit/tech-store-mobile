@@ -2,6 +2,7 @@ package com.example.tech_store_mobile.Model;
 
 public class CreateCardPaymentMethodResponse {
     private String id;
+    private String customerId;
     private String brand;
     private String last4;
     private Integer expMonth;
@@ -18,6 +19,14 @@ public class CreateCardPaymentMethodResponse {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
     }
 
     public String getBrand() {

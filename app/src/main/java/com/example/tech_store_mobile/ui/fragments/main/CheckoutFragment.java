@@ -20,21 +20,26 @@ import androidx.fragment.app.FragmentTransaction;
 import com.example.tech_store_mobile.Model.Address;
 import com.example.tech_store_mobile.Model.CreatePaymentIntentRequest;
 import com.example.tech_store_mobile.Model.CreatePaymentIntentResponse;
+import com.example.tech_store_mobile.Model.LichSuThanhToan;
 import com.example.tech_store_mobile.Model.PaymentMethod;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.MainNavigationHelper;
 import com.example.tech_store_mobile.utils.StripeConfig;
 import com.example.tech_store_mobile.utils.StripePaymentApiClient;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.stripe.android.PaymentConfiguration;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.WriteBatch;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
-import com.stripe.android.paymentsheet.PaymentSheet;
-import com.stripe.android.paymentsheet.PaymentSheetResult;
+import com.google.firebase.Timestamp;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class CheckoutFragment extends Fragment {
     private static final String TAG = "CheckoutFragment";
@@ -61,7 +66,6 @@ public class CheckoutFragment extends Fragment {
     private TextView tvShippingValue;
     private TextView tvTotalValue;
     private MaterialButton btnPlaceOrder;
-    private PaymentSheet paymentSheet;
     private final StripePaymentApiClient stripePaymentApiClient = new StripePaymentApiClient();
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
@@ -94,7 +98,6 @@ public class CheckoutFragment extends Fragment {
         readArguments();
         initializeViews(view);
         bindData();
-        setupStripePaymentSheet();
         setupListeners(view);
         applyPaymentMode(true);
 
@@ -254,19 +257,35 @@ public class CheckoutFragment extends Fragment {
 
         if (!TextUtils.isEmpty(defaultPaymentId)) {
             for (PaymentMethod paymentMethod : paymentMethods) {
-                if (defaultPaymentId.equals(paymentMethod.getPaymentId())) {
+                if (defaultPaymentId.equals(paymentMethod.getPaymentId()) && isReusableStripePaymentMethod(paymentMethod)) {
                     return paymentMethod;
                 }
             }
         }
 
         for (PaymentMethod paymentMethod : paymentMethods) {
+            if (isReusableStripePaymentMethod(paymentMethod)) {
+                return paymentMethod;
+            }
+        }
+
+        for (PaymentMethod paymentMethod : paymentMethods) {
+            if (!TextUtils.isEmpty(defaultPaymentId) && defaultPaymentId.equals(paymentMethod.getPaymentId())) {
+                return paymentMethod;
+            }
+
             if (Boolean.TRUE.equals(paymentMethod.getIsDefault())) {
                 return paymentMethod;
             }
         }
 
         return paymentMethods.get(0);
+    }
+
+    private boolean isReusableStripePaymentMethod(PaymentMethod paymentMethod) {
+        return paymentMethod != null
+                && !TextUtils.isEmpty(paymentMethod.getPaymentId())
+                && paymentMethod.getPaymentId().startsWith("pm_");
     }
 
     private void renderAddress() {
@@ -300,6 +319,7 @@ public class CheckoutFragment extends Fragment {
 
         if (selectedPaymentMethod == null) {
             tvCardNumber.setText(R.string.checkout_card_number_placeholder);
+            btnEditCard.setVisibility(View.VISIBLE);
             return;
         }
 
@@ -374,10 +394,6 @@ public class CheckoutFragment extends Fragment {
         return String.format(Locale.US, "$ %.2f", amount);
     }
 
-    private void setupStripePaymentSheet() {
-        paymentSheet = new PaymentSheet(this, this::handlePaymentSheetResult);
-    }
-
     private void startStripePaymentFlow() {
         if (!isAdded()) {
             return;
@@ -394,10 +410,18 @@ public class CheckoutFragment extends Fragment {
             return;
         }
 
+        if (selectedPaymentMethod == null || TextUtils.isEmpty(selectedPaymentMethod.getPaymentId())) {
+            Toast.makeText(requireContext(), "Chưa có thẻ đã lưu hợp lệ. Hãy thêm thẻ mới.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!selectedPaymentMethod.getPaymentId().startsWith("pm_")) {
+            Toast.makeText(requireContext(), "Thẻ đang hiển thị là thẻ cũ, chưa thể dùng để thanh toán. Hãy thêm lại thẻ mới.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         btnPlaceOrder.setEnabled(false);
         btnPlaceOrder.setText(R.string.checkout_processing);
-
-        PaymentConfiguration.init(requireContext(), StripeConfig.STRIPE_PUBLISHABLE_KEY);
 
         String orderId = "CHECKOUT-" + System.currentTimeMillis();
         CreatePaymentIntentRequest request = new CreatePaymentIntentRequest(
@@ -408,7 +432,7 @@ public class CheckoutFragment extends Fragment {
                 shipping,
                 total,
                 StripeConfig.CURRENCY_USD,
-                "card"
+                selectedPaymentMethod.getPaymentId()
         );
 
         stripePaymentApiClient.createPaymentIntent(request, new StripePaymentApiClient.Callback() {
@@ -421,14 +445,18 @@ public class CheckoutFragment extends Fragment {
                 btnPlaceOrder.setEnabled(true);
                 btnPlaceOrder.setText(R.string.checkout_place_order);
 
-                String clientSecret = response.getClientSecret();
-                if (clientSecret == null || clientSecret.trim().isEmpty()) {
-                    Toast.makeText(requireContext(), "API chưa trả về client_secret.", Toast.LENGTH_SHORT).show();
+                String status = response.getStatus();
+                if (status != null && status.equalsIgnoreCase("succeeded")) {
+                    savePaymentHistoryAndClearCart(userId, orderId, response);
                     return;
                 }
 
-                PaymentSheet.Configuration configuration = new PaymentSheet.Configuration("Tech Store");
-                paymentSheet.presentWithPaymentIntent(clientSecret, configuration);
+                if (status != null && status.equalsIgnoreCase("processing")) {
+                    Toast.makeText(requireContext(), "Thanh toán đang được xử lý, vui lòng chờ một chút.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Toast.makeText(requireContext(), "Thanh toán chưa hoàn tất: " + (status != null ? status : "unknown"), Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -444,27 +472,67 @@ public class CheckoutFragment extends Fragment {
         });
     }
 
-    private void handlePaymentSheetResult(PaymentSheetResult paymentSheetResult) {
-        if (!isAdded()) {
-            return;
-        }
+    private void savePaymentHistoryAndClearCart(String userId, String orderId, CreatePaymentIntentResponse response) {
+        String paymentHistoryId = db.collection("lich_su_thanh_toans").document().getId();
+        double amount = response.getAmount() != null ? response.getAmount() / 100.0 : total;
+        String currency = !TextUtils.isEmpty(response.getCurrency()) ? response.getCurrency() : StripeConfig.CURRENCY_USD;
+        String paymentIntentId = !TextUtils.isEmpty(response.getPaymentIntentId()) ? response.getPaymentIntentId() : "";
 
-        btnPlaceOrder.setEnabled(true);
-        btnPlaceOrder.setText(R.string.checkout_place_order);
+        LichSuThanhToan history = new LichSuThanhToan(
+                paymentHistoryId,
+                userId,
+                null,
+                orderId,
+                safeText(selectedPaymentMethod != null ? selectedPaymentMethod.getCardType() : null, "Card"),
+                "Stripe",
+                "Succeeded",
+                paymentIntentId,
+                paymentIntentId,
+                amount,
+                currency,
+                Timestamp.now(),
+                Timestamp.now(),
+                null,
+                ""
+        );
 
-        if (paymentSheetResult instanceof PaymentSheetResult.Completed) {
-            Toast.makeText(requireContext(), R.string.checkout_payment_success, Toast.LENGTH_SHORT).show();
-        } else if (paymentSheetResult instanceof PaymentSheetResult.Canceled) {
-            Toast.makeText(requireContext(), R.string.checkout_payment_canceled, Toast.LENGTH_SHORT).show();
-        } else if (paymentSheetResult instanceof PaymentSheetResult.Failed) {
-            PaymentSheetResult.Failed failed = (PaymentSheetResult.Failed) paymentSheetResult;
-            String errorMessage = failed.getError().getLocalizedMessage();
-            if (errorMessage == null || errorMessage.trim().isEmpty()) {
-                errorMessage = getString(R.string.checkout_payment_failed);
-            }
-            Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-        }
+        db.collection("lich_su_thanh_toans").document(paymentHistoryId).set(history)
+                .addOnSuccessListener(unused -> clearCartAndGoHome(userId))
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to save payment history", e);
+                    Toast.makeText(requireContext(), "Thanh toán thành công nhưng không lưu được lịch sử: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    clearCartAndGoHome(userId);
+                });
     }
+
+    private void clearCartAndGoHome(String userId) {
+        db.collection("carts")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    WriteBatch batch = db.batch();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        batch.delete(doc.getReference());
+                    }
+
+                    batch.commit()
+                            .addOnSuccessListener(unused -> {
+                                Toast.makeText(requireContext(), R.string.checkout_payment_success, Toast.LENGTH_SHORT).show();
+                                MainNavigationHelper.navigateBackToHome(this);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to clear cart", e);
+                                Toast.makeText(requireContext(), "Thanh toán xong nhưng không xóa được cart: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                MainNavigationHelper.navigateBackToHome(this);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to query cart items for clearing", e);
+                    Toast.makeText(requireContext(), "Thanh toán xong nhưng không đọc được cart để xóa.", Toast.LENGTH_SHORT).show();
+                    MainNavigationHelper.navigateBackToHome(this);
+                });
+    }
+
 
     private void replaceFragment(Fragment fragment) {
         FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
