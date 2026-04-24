@@ -50,6 +50,10 @@
     <string name="checkout_promo_hint">Enter promo code</string>
     <string name="checkout_add">Add</string>
     <string name="checkout_place_order">Place Order</string>
+    <string name="checkout_processing">Đang xử lý…</string>
+    <string name="checkout_payment_success">Thanh toán thành công</string>
+    <string name="checkout_payment_canceled">Đã hủy thanh toán</string>
+    <string name="checkout_payment_failed">Thanh toán thất bại</string>
     <string name="checkout_amount_subtotal">$ 2089.00</string>
     <string name="checkout_amount_vat">$ 0.00</string>
     <string name="checkout_amount_shipping">$ 80.00</string>
@@ -63,6 +67,8 @@
     <string name="checkout_address_content_description">Address</string>
     <string name="checkout_card_logo_content_description">Card logo</string>
     <string name="checkout_edit_payment_content_description">Edit payment method</string>
+    <string name="add_card_button">Add Card</string>
+    <string name="add_card_processing">Processing…</string>
     <string name="login_required_title">Sign in required</string>
     <string name="login_required_message">Please sign in to continue.</string>
     <string name="login_required_favorite_message">Please sign in to add this product to your favorites.</string>

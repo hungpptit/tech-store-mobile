@@ -120,6 +120,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tv_checkout_address_nickname"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/checkout_address_label"
@@ -128,6 +129,7 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tv_checkout_address_detail"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -153,17 +155,6 @@
                     android:textColor="#111111"
                     android:textSize="16sp"
                     android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/btn_change_payment"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:paddingHorizontal="6dp"
-                    android:paddingVertical="4dp"
-                    android:text="@string/checkout_change"
-                    android:textColor="#111111"
-                    android:textSize="14sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -185,7 +176,7 @@
                     android:textSize="14sp"
                     app:backgroundTint="@color/black"
                     app:cornerRadius="12dp"
-                    app:icon="@drawable/card_1"
+                    app:icon="@drawable/card_1_white"
                     app:iconGravity="textStart"
                     app:iconPadding="8dp"
                     app:iconSize="22dp"
@@ -230,21 +221,14 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="12dp"
                     android:paddingVertical="14dp">
-
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="24dp"
-                        android:contentDescription="@string/checkout_card_logo_content_description"
-                        android:scaleType="fitCenter"
-                        android:src="@drawable/card_1" />
 
                     <TextView
                         android:id="@+id/tv_card_number_checkout"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="4dp"
                         android:layout_weight="1"
                         android:text="@string/checkout_card_number_placeholder"
                         android:textColor="#111111"

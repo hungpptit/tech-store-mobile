@@ -1,6 +1,9 @@
 package com.example.tech_store_mobile.ui.fragments.main;
 
+import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,18 +13,31 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.core.content.ContextCompat;
-import android.content.res.ColorStateList;
 
+import com.example.tech_store_mobile.Model.Address;
+import com.example.tech_store_mobile.Model.CreatePaymentIntentRequest;
+import com.example.tech_store_mobile.Model.CreatePaymentIntentResponse;
+import com.example.tech_store_mobile.Model.PaymentMethod;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.StripeConfig;
+import com.example.tech_store_mobile.utils.StripePaymentApiClient;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.stripe.android.PaymentConfiguration;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.stripe.android.paymentsheet.PaymentSheet;
+import com.stripe.android.paymentsheet.PaymentSheetResult;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class CheckoutFragment extends Fragment {
+    private static final String TAG = "CheckoutFragment";
 
     private static final String ARG_SUBTOTAL = "arg_subtotal";
     private static final String ARG_VAT = "arg_vat";
@@ -33,7 +49,8 @@ public class CheckoutFragment extends Fragment {
     private static final double DEFAULT_SHIPPING = 80.00;
 
     private TextView btnChangeAddress;
-    private TextView btnChangePayment;
+    private TextView tvAddressNickname;
+    private TextView tvAddressDetail;
     private MaterialButton btnPaymentCard;
     private MaterialButton btnPaymentCash;
     private MaterialCardView paymentDetailsCard;
@@ -44,11 +61,20 @@ public class CheckoutFragment extends Fragment {
     private TextView tvShippingValue;
     private TextView tvTotalValue;
     private MaterialButton btnPlaceOrder;
+    private PaymentSheet paymentSheet;
+    private final StripePaymentApiClient stripePaymentApiClient = new StripePaymentApiClient();
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     private double subtotal = DEFAULT_SUBTOTAL;
     private double vat = DEFAULT_VAT;
     private double shipping = DEFAULT_SHIPPING;
     private double total = DEFAULT_SUBTOTAL + DEFAULT_VAT + DEFAULT_SHIPPING;
+    private boolean isCardPaymentSelected = true;
+    private String defaultAddressId;
+    private String defaultPaymentId;
+    private Address selectedAddress;
+    private PaymentMethod selectedPaymentMethod;
+
     public static CheckoutFragment newInstance(double subtotal, double vat, double shipping, double total) {
         CheckoutFragment fragment = new CheckoutFragment();
         Bundle args = new Bundle();
@@ -68,10 +94,17 @@ public class CheckoutFragment extends Fragment {
         readArguments();
         initializeViews(view);
         bindData();
+        setupStripePaymentSheet();
         setupListeners(view);
         applyPaymentMode(true);
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadCheckoutData();
     }
 
     private void readArguments() {
@@ -88,7 +121,8 @@ public class CheckoutFragment extends Fragment {
 
     private void initializeViews(View view) {
         btnChangeAddress = view.findViewById(R.id.btn_change_address);
-        btnChangePayment = view.findViewById(R.id.btn_change_payment);
+        tvAddressNickname = view.findViewById(R.id.tv_checkout_address_nickname);
+        tvAddressDetail = view.findViewById(R.id.tv_checkout_address_detail);
         btnPaymentCard = view.findViewById(R.id.btn_payment_card);
         btnPaymentCash = view.findViewById(R.id.btn_payment_cash);
         paymentDetailsCard = view.findViewById(R.id.card_payment_details);
@@ -106,6 +140,172 @@ public class CheckoutFragment extends Fragment {
         tvVatValue.setText(formatMoney(vat));
         tvShippingValue.setText(formatMoney(shipping));
         tvTotalValue.setText(formatMoney(total));
+        renderAddress();
+        renderPaymentDetails();
+    }
+
+    private void loadCheckoutData() {
+        if (!isAdded()) {
+            return;
+        }
+
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            selectedAddress = null;
+            selectedPaymentMethod = null;
+            defaultAddressId = null;
+            defaultPaymentId = null;
+            renderAddress();
+            renderPaymentDetails();
+            return;
+        }
+
+        selectedAddress = null;
+        selectedPaymentMethod = null;
+        defaultAddressId = null;
+        defaultPaymentId = null;
+
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+
+                    defaultAddressId = snapshot.getString("defaultAddressId");
+                    defaultPaymentId = snapshot.getString("defaultPaymentId");
+
+                    loadDefaultAddress(userId);
+                    loadDefaultPaymentMethod(userId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load checkout defaults", e);
+                    loadDefaultAddress(userId);
+                    loadDefaultPaymentMethod(userId);
+                });
+    }
+
+    private void loadDefaultAddress(String userId) {
+        db.collection("addresses")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+
+                    List<Address> addresses = new ArrayList<>(queryDocumentSnapshots.toObjects(Address.class));
+                    selectedAddress = pickPreferredAddress(addresses);
+                    renderAddress();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load addresses", e);
+                    selectedAddress = null;
+                    renderAddress();
+                });
+    }
+
+    private void loadDefaultPaymentMethod(String userId) {
+        db.collection("payment_methods")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+
+                    List<PaymentMethod> paymentMethods = new ArrayList<>(queryDocumentSnapshots.toObjects(PaymentMethod.class));
+                    selectedPaymentMethod = pickPreferredPaymentMethod(paymentMethods);
+                    renderPaymentDetails();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load payment methods", e);
+                    selectedPaymentMethod = null;
+                    renderPaymentDetails();
+                });
+    }
+
+    private Address pickPreferredAddress(List<Address> addresses) {
+        if (addresses == null || addresses.isEmpty()) {
+            return null;
+        }
+
+        if (!TextUtils.isEmpty(defaultAddressId)) {
+            for (Address address : addresses) {
+                if (defaultAddressId.equals(address.getAddressId())) {
+                    return address;
+                }
+            }
+        }
+
+        for (Address address : addresses) {
+            if (Boolean.TRUE.equals(address.getIsDefault())) {
+                return address;
+            }
+        }
+
+        return addresses.get(0);
+    }
+
+    private PaymentMethod pickPreferredPaymentMethod(List<PaymentMethod> paymentMethods) {
+        if (paymentMethods == null || paymentMethods.isEmpty()) {
+            return null;
+        }
+
+        if (!TextUtils.isEmpty(defaultPaymentId)) {
+            for (PaymentMethod paymentMethod : paymentMethods) {
+                if (defaultPaymentId.equals(paymentMethod.getPaymentId())) {
+                    return paymentMethod;
+                }
+            }
+        }
+
+        for (PaymentMethod paymentMethod : paymentMethods) {
+            if (Boolean.TRUE.equals(paymentMethod.getIsDefault())) {
+                return paymentMethod;
+            }
+        }
+
+        return paymentMethods.get(0);
+    }
+
+    private void renderAddress() {
+        if (tvAddressNickname == null || tvAddressDetail == null) {
+            return;
+        }
+
+        if (selectedAddress != null) {
+            tvAddressNickname.setText(safeText(selectedAddress.getNickname(), getString(R.string.checkout_delivery_address)));
+            tvAddressDetail.setText(safeText(selectedAddress.getFullAddress(), getString(R.string.checkout_address_detail)));
+        } else {
+            tvAddressNickname.setText(R.string.checkout_delivery_address);
+            tvAddressDetail.setText(R.string.checkout_address_detail);
+        }
+    }
+
+    private void renderPaymentDetails() {
+        if (tvCardNumber == null) {
+            return;
+        }
+
+        if (!isCardPaymentSelected) {
+            tvCardNumber.setText(R.string.checkout_cash_text);
+            btnEditCard.setVisibility(View.GONE);
+            paymentDetailsCard.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        btnEditCard.setVisibility(View.VISIBLE);
+        paymentDetailsCard.setVisibility(View.VISIBLE);
+
+        if (selectedPaymentMethod == null) {
+            tvCardNumber.setText(R.string.checkout_card_number_placeholder);
+            return;
+        }
+
+        String cardType = safeText(selectedPaymentMethod.getCardType(), "CARD");
+        String maskedNumber = maskCardNumber(selectedPaymentMethod.getCardNumber());
+        tvCardNumber.setText(cardType + " " + maskedNumber);
     }
 
     private void setupListeners(View view) {
@@ -116,16 +316,22 @@ public class CheckoutFragment extends Fragment {
         btnNotification.setOnClickListener(v -> Toast.makeText(requireContext(), R.string.checkout_notifications_toast, Toast.LENGTH_SHORT).show());
 
         btnChangeAddress.setOnClickListener(v -> replaceFragment(new AddressFragment()));
-        btnChangePayment.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
 
         btnPaymentCard.setOnClickListener(v -> applyPaymentMode(true));
         btnPaymentCash.setOnClickListener(v -> applyPaymentMode(false));
 
-        btnEditCard.setOnClickListener(v -> Toast.makeText(requireContext(), R.string.checkout_edit_card_toast, Toast.LENGTH_SHORT).show());
-        btnPlaceOrder.setOnClickListener(v -> Toast.makeText(requireContext(), R.string.checkout_place_order_toast, Toast.LENGTH_SHORT).show());
+        btnEditCard.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
+        btnPlaceOrder.setOnClickListener(v -> {
+            if (isCardPaymentSelected) {
+                startStripePaymentFlow();
+            } else {
+                Toast.makeText(requireContext(), R.string.checkout_place_order_toast, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void applyPaymentMode(boolean cardSelected) {
+        isCardPaymentSelected = cardSelected;
         if (cardSelected) {
             btnPaymentCard.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.black)));
             btnPaymentCard.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
@@ -134,10 +340,6 @@ public class CheckoutFragment extends Fragment {
             btnPaymentCash.setTextColor(ContextCompat.getColor(requireContext(), R.color.black));
             btnPaymentCash.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.grey_light)));
             btnPaymentCash.setIconTint(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.black)));
-
-            paymentDetailsCard.setVisibility(View.VISIBLE);
-            tvCardNumber.setText(R.string.checkout_card_number_placeholder);
-            btnEditCard.setVisibility(View.VISIBLE);
         } else {
             btnPaymentCard.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), android.R.color.white)));
             btnPaymentCard.setTextColor(ContextCompat.getColor(requireContext(), R.color.black));
@@ -146,15 +348,122 @@ public class CheckoutFragment extends Fragment {
             btnPaymentCash.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
             btnPaymentCash.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.black)));
             btnPaymentCash.setIconTint(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white)));
-
-            paymentDetailsCard.setVisibility(View.VISIBLE);
-            tvCardNumber.setText(R.string.checkout_cash_text);
-            btnEditCard.setVisibility(View.GONE);
         }
+
+        renderPaymentDetails();
+    }
+
+    private String safeText(String value, String fallback) {
+        return TextUtils.isEmpty(value) ? fallback : value;
+    }
+
+    private String maskCardNumber(String cardNumber) {
+        if (TextUtils.isEmpty(cardNumber)) {
+            return "**** **** **** ****";
+        }
+
+        String normalized = cardNumber.replaceAll("\\s+", "");
+        if (normalized.length() < 4) {
+            return cardNumber;
+        }
+
+        return "**** **** **** " + normalized.substring(normalized.length() - 4);
     }
 
     private String formatMoney(double amount) {
         return String.format(Locale.US, "$ %.2f", amount);
+    }
+
+    private void setupStripePaymentSheet() {
+        paymentSheet = new PaymentSheet(this, this::handlePaymentSheetResult);
+    }
+
+    private void startStripePaymentFlow() {
+        if (!isAdded()) {
+            return;
+        }
+
+        String userId = AuthManager.getCurrentUid();
+        if (userId == null) {
+            Toast.makeText(requireContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!StripeConfig.isConfigured()) {
+            Toast.makeText(requireContext(), "Stripe chưa được cấu hình. Hãy điền key test trong StripeConfig.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        btnPlaceOrder.setEnabled(false);
+        btnPlaceOrder.setText(R.string.checkout_processing);
+
+        PaymentConfiguration.init(requireContext(), StripeConfig.STRIPE_PUBLISHABLE_KEY);
+
+        String orderId = "CHECKOUT-" + System.currentTimeMillis();
+        CreatePaymentIntentRequest request = new CreatePaymentIntentRequest(
+                userId,
+                orderId,
+                subtotal,
+                vat,
+                shipping,
+                total,
+                StripeConfig.CURRENCY_USD,
+                "card"
+        );
+
+        stripePaymentApiClient.createPaymentIntent(request, new StripePaymentApiClient.Callback() {
+            @Override
+            public void onSuccess(CreatePaymentIntentResponse response) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                btnPlaceOrder.setEnabled(true);
+                btnPlaceOrder.setText(R.string.checkout_place_order);
+
+                String clientSecret = response.getClientSecret();
+                if (clientSecret == null || clientSecret.trim().isEmpty()) {
+                    Toast.makeText(requireContext(), "API chưa trả về client_secret.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                PaymentSheet.Configuration configuration = new PaymentSheet.Configuration("Tech Store");
+                paymentSheet.presentWithPaymentIntent(clientSecret, configuration);
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                btnPlaceOrder.setEnabled(true);
+                btnPlaceOrder.setText(R.string.checkout_place_order);
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void handlePaymentSheetResult(PaymentSheetResult paymentSheetResult) {
+        if (!isAdded()) {
+            return;
+        }
+
+        btnPlaceOrder.setEnabled(true);
+        btnPlaceOrder.setText(R.string.checkout_place_order);
+
+        if (paymentSheetResult instanceof PaymentSheetResult.Completed) {
+            Toast.makeText(requireContext(), R.string.checkout_payment_success, Toast.LENGTH_SHORT).show();
+        } else if (paymentSheetResult instanceof PaymentSheetResult.Canceled) {
+            Toast.makeText(requireContext(), R.string.checkout_payment_canceled, Toast.LENGTH_SHORT).show();
+        } else if (paymentSheetResult instanceof PaymentSheetResult.Failed) {
+            PaymentSheetResult.Failed failed = (PaymentSheetResult.Failed) paymentSheetResult;
+            String errorMessage = failed.getError().getLocalizedMessage();
+            if (errorMessage == null || errorMessage.trim().isEmpty()) {
+                errorMessage = getString(R.string.checkout_payment_failed);
+            }
+            Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void replaceFragment(Fragment fragment) {

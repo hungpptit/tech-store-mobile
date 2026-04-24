@@ -66,7 +66,7 @@ public class AccountFragment extends Fragment {
 
         // 4. Payment Methods
         View paymentView = view.findViewById(R.id.item_payment_methods);
-        setupMenuItem(paymentView, "Payment Methods", R.drawable.card_1);
+        setupMenuItem(paymentView, "Payment Methods", R.drawable.card_1_black);
         paymentView.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
 
         // 5. Help Center
