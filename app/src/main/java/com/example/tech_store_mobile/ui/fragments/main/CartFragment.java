@@ -1,6 +1,9 @@
 package com.example.tech_store_mobile.ui.fragments.main;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,9 +29,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class CartFragment extends Fragment {
+    private static final String PREFS_NAME = "checkout_refresh_prefs";
+    private static final String KEY_CART_NEEDS_RELOAD = "key_cart_needs_reload";
 
     private ImageView btnBack;
     private View cartAppBar;
@@ -36,6 +43,7 @@ public class CartFragment extends Fragment {
     private View cartSummaryContainer;
     private View cartGuestState;
     private MaterialButton btnCartSignIn;
+    private MaterialButton btnCheckout;
     private TextView tvSubtotalValue;
     private TextView tvVatValue;
     private TextView tvShippingValue;
@@ -47,7 +55,9 @@ public class CartFragment extends Fragment {
     private double currentTotal = 0.0;
 
     private final List<CartAdapter.CartEntry> cartEntries = new ArrayList<>();
+    private final Set<String> loadedCartKeys = new HashSet<>();
     private CartAdapter cartAdapter;
+    private int cartLoadGeneration = 0;
 
     public CartFragment() {
     }
@@ -77,6 +87,7 @@ public class CartFragment extends Fragment {
     public void onResume() {
         super.onResume();
         showBottomNavigation();
+        refreshIfNeeded();
     }
 
     @Override
@@ -104,7 +115,7 @@ public class CartFragment extends Fragment {
         tvVatValue = view.findViewById(R.id.tvVatValue);
         tvShippingValue = view.findViewById(R.id.tvShippingValue);
         tvTotalValue = view.findViewById(R.id.tvTotalValue);
-        MaterialButton btnCheckout = view.findViewById(R.id.btnCheckout);
+        btnCheckout = view.findViewById(R.id.btnCheckout);
 
         tvTitle.setText(R.string.cart_title);
         if (btnNotification != null) {
@@ -146,6 +157,11 @@ public class CartFragment extends Fragment {
             public void onDeleteItem(int position) {
                 removeCartItem(position);
             }
+
+            @Override
+            public void onSelectionChanged(int position, boolean selected) {
+                updateCartSummary();
+            }
         });
         cartAdapter.setOnCartItemClickListener(item -> {
             if (item != null && item.getProductId() != null && !item.getProductId().trim().isEmpty()) {
@@ -174,6 +190,7 @@ public class CartFragment extends Fragment {
         } else {
             int previousSize = cartEntries.size();
             cartEntries.clear();
+            loadedCartKeys.clear();
             if (previousSize > 0) {
                 cartAdapter.notifyDataSetChanged();
             }
@@ -181,20 +198,53 @@ public class CartFragment extends Fragment {
         }
     }
 
+    public void refreshCartItems() {
+        if (!isAdded()) {
+            return;
+        }
+
+        renderAuthState();
+    }
+
+    private void refreshIfNeeded() {
+        if (!isAdded() || getContext() == null) {
+            return;
+        }
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        boolean needsReload = prefs.getBoolean(KEY_CART_NEEDS_RELOAD, false);
+        if (needsReload) {
+            prefs.edit().putBoolean(KEY_CART_NEEDS_RELOAD, false).apply();
+            renderAuthState();
+            return;
+        }
+
+        renderAuthState();
+    }
+
     private void loadCartItemsFromFirestore() {
         String userId = AuthManager.getCurrentUid();
         if (userId == null) {
             cartEntries.clear();
+            loadedCartKeys.clear();
             cartAdapter.notifyDataSetChanged();
             updateCartSummary();
             return;
         }
 
+        final int generation = ++cartLoadGeneration;
+        cartEntries.clear();
+        loadedCartKeys.clear();
+        cartAdapter.notifyDataSetChanged();
+        updateCartSummary();
+
         db.collection("carts")
                 .whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    cartEntries.clear();
+                    if (generation != cartLoadGeneration) {
+                        return;
+                    }
 
                     List<QueryDocumentSnapshot> docs = new ArrayList<>();
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
@@ -210,6 +260,10 @@ public class CartFragment extends Fragment {
                     loadCartItemAtIndex(docs, 0);
                 })
                 .addOnFailureListener(e -> {
+                    if (generation != cartLoadGeneration) {
+                        return;
+                    }
+
                     cartEntries.clear();
                     cartAdapter.notifyDataSetChanged();
                     updateCartSummary();
@@ -217,6 +271,15 @@ public class CartFragment extends Fragment {
     }
 
     private void loadCartItemAtIndex(List<QueryDocumentSnapshot> docs, int index) {
+        final int generation = cartLoadGeneration;
+        loadCartItemAtIndex(docs, index, generation);
+    }
+
+    private void loadCartItemAtIndex(List<QueryDocumentSnapshot> docs, int index, int generation) {
+        if (generation != cartLoadGeneration) {
+            return;
+        }
+
         if (index >= docs.size()) {
             cartAdapter.notifyDataSetChanged();
             updateCartSummary();
@@ -228,9 +291,15 @@ public class CartFragment extends Fragment {
         String selectedColor = doc.getString("selectedColor") != null ? doc.getString("selectedColor") : "";
         Long quantity = doc.getLong("quantity");
         Double priceAtAdded = doc.getDouble("priceAtAdded");
+        String logicalKey = productId + "_" + selectedColor;
+
+        if (loadedCartKeys.contains(logicalKey)) {
+            loadCartItemAtIndex(docs, index + 1, generation);
+            return;
+        }
 
         if (productId == null || productId.trim().isEmpty()) {
-            loadCartItemAtIndex(docs, index + 1);
+            loadCartItemAtIndex(docs, index + 1, generation);
             return;
         }
 
@@ -238,11 +307,16 @@ public class CartFragment extends Fragment {
                 .document(productId)
                 .get()
                 .addOnSuccessListener(productSnapshot -> {
+                    if (generation != cartLoadGeneration) {
+                        return;
+                    }
+
                     String productName = productSnapshot.getString("productName") != null ? productSnapshot.getString("productName") : "Unknown item";
                     String imageUrl = productSnapshot.getString("imageUrl");
                     Double price = priceAtAdded != null ? priceAtAdded : productSnapshot.getDouble("finalPrice");
 
                     cartEntries.add(new CartAdapter.CartEntry(
+                            doc.getId(),
                             productId,
                             productName,
                             selectedColor,
@@ -250,24 +324,29 @@ public class CartFragment extends Fragment {
                             price != null ? price : 0.0,
                             quantity != null ? quantity.intValue() : 1
                     ));
+                    loadedCartKeys.add(logicalKey);
 
-                    loadCartItemAtIndex(docs, index + 1);
+                    loadCartItemAtIndex(docs, index + 1, generation);
                 })
-                .addOnFailureListener(e -> loadCartItemAtIndex(docs, index + 1));
+                .addOnFailureListener(e -> loadCartItemAtIndex(docs, index + 1, generation));
     }
 
     private void updateCartSummary() {
         if (cartSummaryContainer == null) return;
 
         boolean hasItems = !cartEntries.isEmpty();
+        boolean hasSelectedItems = false;
         cartSummaryContainer.setVisibility(hasItems ? View.VISIBLE : View.GONE);
 
         double subtotal = 0.0;
         for (CartAdapter.CartEntry item : cartEntries) {
-            subtotal += item.getLineTotal();
+            if (item.isSelected()) {
+                subtotal += item.getLineTotal();
+                hasSelectedItems = true;
+            }
         }
         double vat = 0.0;
-        double shipping = hasItems ? 80.0 : 0.0;
+        double shipping = hasSelectedItems ? 80.0 : 0.0;
         double total = subtotal + vat + shipping;
 
         currentSubtotal = subtotal;
@@ -279,6 +358,10 @@ public class CartFragment extends Fragment {
         if (tvVatValue != null) tvVatValue.setText(String.format(java.util.Locale.US, "$ %.2f", vat));
         if (tvShippingValue != null) tvShippingValue.setText(String.format(java.util.Locale.US, "$ %.2f", shipping));
         if (tvTotalValue != null) tvTotalValue.setText(String.format(java.util.Locale.US, "$ %.2f", total));
+        if (btnCheckout != null) {
+            btnCheckout.setEnabled(hasSelectedItems);
+            btnCheckout.setAlpha(hasSelectedItems ? 1f : 0.5f);
+        }
     }
 
     private void openCheckoutScreen() {
@@ -296,7 +379,25 @@ public class CartFragment extends Fragment {
             fragmentContainer.setVisibility(View.VISIBLE);
         }
 
-        CheckoutFragment checkoutFragment = CheckoutFragment.newInstance(currentSubtotal, currentVat, currentShipping, currentTotal);
+        ArrayList<String> selectedCartDocIds = new ArrayList<>();
+        for (CartAdapter.CartEntry item : cartEntries) {
+            if (item.isSelected()) {
+                selectedCartDocIds.add(item.getCartDocId());
+            }
+        }
+
+        if (selectedCartDocIds.isEmpty()) {
+            Toast.makeText(requireContext(), "Hãy chọn ít nhất 1 sản phẩm để thanh toán.", Toast.LENGTH_SHORT).show();
+            if (viewPager != null) {
+                viewPager.setVisibility(View.VISIBLE);
+            }
+            if (fragmentContainer != null) {
+                fragmentContainer.setVisibility(View.GONE);
+            }
+            return;
+        }
+
+        CheckoutFragment checkoutFragment = CheckoutFragment.newInstance(currentSubtotal, currentVat, currentShipping, currentTotal, selectedCartDocIds);
         FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, checkoutFragment);
         transaction.addToBackStack(null);
@@ -320,12 +421,12 @@ public class CartFragment extends Fragment {
             return;
         }
 
-        String selectedColor = item.getSelectedColor() != null ? item.getSelectedColor() : "";
-        String docId = userId + "_" + item.getProductId() + "_" + selectedColor;
+        String docId = !TextUtils.isEmpty(item.getCartDocId()) ? item.getCartDocId() : userId + "_" + item.getProductId() + "_" + (item.getSelectedColor() != null ? item.getSelectedColor() : "");
 
         db.collection("carts").document(docId).delete()
                 .addOnSuccessListener(unused -> {
                     cartEntries.remove(position);
+                    loadedCartKeys.remove(item.getProductId() + "_" + (item.getSelectedColor() != null ? item.getSelectedColor() : ""));
                     cartAdapter.notifyItemRemoved(position);
                     if (position < cartEntries.size()) {
                         cartAdapter.notifyItemRangeChanged(position, cartEntries.size() - position);

@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -361,6 +362,11 @@ public class AddCardFragment extends Fragment {
         Dialog dialog = new Dialog(requireContext());
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.dialog_success);
+
+        TextView title = dialog.findViewById(R.id.tv_success_title);
+        TextView message = dialog.findViewById(R.id.tv_success_message);
+        if (title != null) title.setText(R.string.dialog_card_success_title);
+        if (message != null) message.setText(R.string.dialog_card_success_message);
         
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -370,10 +376,13 @@ public class AddCardFragment extends Fragment {
         dialog.setCancelable(false);
 
         AppCompatButton btnThanks = dialog.findViewById(R.id.btn_thanks);
-        btnThanks.setOnClickListener(v -> {
-            dialog.dismiss();
-            requireActivity().getOnBackPressedDispatcher().onBackPressed();
-        });
+        if (btnThanks != null) {
+            btnThanks.setText(R.string.dialog_card_success_button);
+            btnThanks.setOnClickListener(v -> {
+                dialog.dismiss();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
+            });
+        }
 
         dialog.show();
     }

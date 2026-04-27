@@ -21,20 +21,22 @@
             app:tint="#4CAF50" />
 
         <TextView
+            android:id="@+id/tv_success_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Congratulations!"
+            android:text="Success!"
             android:textColor="#000000"
             android:textSize="20sp"
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tv_success_message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center"
-            android:text="Your new address has been added."
+            android:text="Your action was completed successfully."
             android:textColor="#888888"
             android:textSize="14sp" />
 
@@ -44,7 +46,7 @@
             android:layout_height="56dp"
             android:layout_marginTop="24dp"
             android:background="@drawable/bg_button_black"
-            android:text="Thanks"
+            android:text="OK"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="16sp"

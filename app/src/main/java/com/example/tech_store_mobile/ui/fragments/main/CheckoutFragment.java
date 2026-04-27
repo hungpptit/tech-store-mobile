@@ -1,12 +1,18 @@
 package com.example.tech_store_mobile.ui.fragments.main;
 
+import android.app.Dialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -16,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.viewpager.widget.ViewPager;
 
 import com.example.tech_store_mobile.Model.Address;
 import com.example.tech_store_mobile.Model.CreatePaymentIntentRequest;
@@ -29,25 +36,26 @@ import com.example.tech_store_mobile.utils.StripeConfig;
 import com.example.tech_store_mobile.utils.StripePaymentApiClient;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
+import androidx.appcompat.widget.AppCompatButton;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.Timestamp;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class CheckoutFragment extends Fragment {
     private static final String TAG = "CheckoutFragment";
+    private static final String PREFS_NAME = "checkout_refresh_prefs";
+    private static final String KEY_CART_NEEDS_RELOAD = "key_cart_needs_reload";
 
     private static final String ARG_SUBTOTAL = "arg_subtotal";
     private static final String ARG_VAT = "arg_vat";
     private static final String ARG_SHIPPING = "arg_shipping";
     private static final String ARG_TOTAL = "arg_total";
+    private static final String ARG_SELECTED_CART_DOC_IDS = "arg_selected_cart_doc_ids";
 
     private static final double DEFAULT_SUBTOTAL = 2089.00;
     private static final double DEFAULT_VAT = 0.00;
@@ -78,14 +86,16 @@ public class CheckoutFragment extends Fragment {
     private String defaultPaymentId;
     private Address selectedAddress;
     private PaymentMethod selectedPaymentMethod;
+    private ArrayList<String> selectedCartDocIds = new ArrayList<>();
 
-    public static CheckoutFragment newInstance(double subtotal, double vat, double shipping, double total) {
+    public static CheckoutFragment newInstance(double subtotal, double vat, double shipping, double total, ArrayList<String> selectedCartDocIds) {
         CheckoutFragment fragment = new CheckoutFragment();
         Bundle args = new Bundle();
         args.putDouble(ARG_SUBTOTAL, subtotal);
         args.putDouble(ARG_VAT, vat);
         args.putDouble(ARG_SHIPPING, shipping);
         args.putDouble(ARG_TOTAL, total);
+        args.putStringArrayList(ARG_SELECTED_CART_DOC_IDS, selectedCartDocIds);
         fragment.setArguments(args);
         return fragment;
     }
@@ -120,6 +130,8 @@ public class CheckoutFragment extends Fragment {
         vat = args.getDouble(ARG_VAT, DEFAULT_VAT);
         shipping = args.getDouble(ARG_SHIPPING, DEFAULT_SHIPPING);
         total = args.getDouble(ARG_TOTAL, subtotal + vat + shipping);
+        ArrayList<String> cartDocIds = args.getStringArrayList(ARG_SELECTED_CART_DOC_IDS);
+        selectedCartDocIds = cartDocIds != null ? cartDocIds : new ArrayList<>();
     }
 
     private void initializeViews(View view) {
@@ -325,7 +337,7 @@ public class CheckoutFragment extends Fragment {
 
         String cardType = safeText(selectedPaymentMethod.getCardType(), "CARD");
         String maskedNumber = maskCardNumber(selectedPaymentMethod.getCardNumber());
-        tvCardNumber.setText(cardType + " " + maskedNumber);
+        tvCardNumber.setText(getString(R.string.checkout_card_number_format, cardType, maskedNumber));
     }
 
     private void setupListeners(View view) {
@@ -506,31 +518,74 @@ public class CheckoutFragment extends Fragment {
     }
 
     private void clearCartAndGoHome(String userId) {
-        db.collection("carts")
-                .whereEqualTo("userId", userId)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    WriteBatch batch = db.batch();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        batch.delete(doc.getReference());
-                    }
+        if (selectedCartDocIds == null || selectedCartDocIds.isEmpty()) {
+            markCartNeedsReload();
+            showPaymentSuccessDialog();
+            return;
+        }
 
-                    batch.commit()
-                            .addOnSuccessListener(unused -> {
-                                Toast.makeText(requireContext(), R.string.checkout_payment_success, Toast.LENGTH_SHORT).show();
-                                MainNavigationHelper.navigateBackToHome(this);
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e(TAG, "Failed to clear cart", e);
-                                Toast.makeText(requireContext(), "Thanh toán xong nhưng không xóa được cart: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                MainNavigationHelper.navigateBackToHome(this);
-                            });
+        WriteBatch batch = db.batch();
+        for (String docId : selectedCartDocIds) {
+            if (!TextUtils.isEmpty(docId)) {
+                batch.delete(db.collection("carts").document(docId));
+            }
+        }
+
+        batch.commit()
+                .addOnSuccessListener(unused -> {
+                    markCartNeedsReload();
+                    showPaymentSuccessDialog();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to query cart items for clearing", e);
-                    Toast.makeText(requireContext(), "Thanh toán xong nhưng không đọc được cart để xóa.", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Failed to clear selected cart items", e);
+                    Toast.makeText(requireContext(), "Thanh toán xong nhưng không xóa được sản phẩm đã chọn: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     MainNavigationHelper.navigateBackToHome(this);
                 });
+    }
+
+    private void markCartNeedsReload() {
+        if (!isAdded()) {
+            return;
+        }
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putBoolean(KEY_CART_NEEDS_RELOAD, true).apply();
+    }
+
+    private void showPaymentSuccessDialog() {
+        Dialog dialog = new Dialog(requireContext());
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_success);
+
+        TextView title = dialog.findViewById(R.id.tv_success_title);
+        TextView message = dialog.findViewById(R.id.tv_success_message);
+        AppCompatButton btnThanks = dialog.findViewById(R.id.btn_thanks);
+
+        if (title != null) {
+            title.setText(R.string.dialog_payment_success_title);
+        }
+        if (message != null) {
+            message.setText(R.string.dialog_payment_success_message);
+        }
+        if (btnThanks != null) {
+            btnThanks.setText(R.string.dialog_payment_success_button);
+            btnThanks.setOnClickListener(v -> {
+                dialog.dismiss();
+                MainNavigationHelper.navigateBackToHome(this);
+                ViewPager viewPager = requireActivity().findViewById(R.id.view_pager);
+                if (viewPager != null) {
+                    viewPager.setCurrentItem(0);
+                }
+            });
+        }
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+
+        dialog.setCancelable(false);
+        dialog.show();
     }
 
 

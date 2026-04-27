@@ -3,6 +3,7 @@ package com.example.tech_store_mobile.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -29,6 +30,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     public static class CartEntry {
+        private final String cartDocId;
         private final String productId;
         private final String productName;
         private final String selectedColor;
@@ -36,12 +38,14 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final String imageUrl;
         private final double priceAtAdded;
         private int quantity;
+        private boolean selected;
 
-        public CartEntry(String productId, String productName, String selectedColor, String imageUrl, double priceAtAdded, int quantity) {
-            this(productId, productName, selectedColor, null, imageUrl, priceAtAdded, quantity);
+        public CartEntry(String cartDocId, String productId, String productName, String selectedColor, String imageUrl, double priceAtAdded, int quantity) {
+            this(cartDocId, productId, productName, selectedColor, null, imageUrl, priceAtAdded, quantity, false);
         }
 
-        private CartEntry(String productId, String productName, String selectedColor, Integer imageResId, String imageUrl, double priceAtAdded, int quantity) {
+        private CartEntry(String cartDocId, String productId, String productName, String selectedColor, Integer imageResId, String imageUrl, double priceAtAdded, int quantity, boolean selected) {
+            this.cartDocId = cartDocId;
             this.productId = productId;
             this.productName = productName;
             this.selectedColor = selectedColor;
@@ -49,8 +53,10 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             this.imageUrl = imageUrl;
             this.priceAtAdded = priceAtAdded;
             this.quantity = quantity;
+            this.selected = selected;
         }
 
+        public String getCartDocId() { return cartDocId; }
         public String getProductId() { return productId; }
         public String getProductName() { return productName; }
         public String getSelectedColor() { return selectedColor; }
@@ -59,6 +65,8 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         public double getPriceAtAdded() { return priceAtAdded; }
         public int getQuantity() { return quantity; }
         public void setQuantity(int quantity) { this.quantity = quantity; }
+        public boolean isSelected() { return selected; }
+        public void setSelected(boolean selected) { this.selected = selected; }
         public double getLineTotal() { return priceAtAdded * quantity; }
     }
 
@@ -66,6 +74,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onIncreaseQuantity(int position);
         void onDecreaseQuantity(int position);
         void onDeleteItem(int position);
+        void onSelectionChanged(int position, boolean selected);
     }
 
     public interface OnCartItemClickListener {
@@ -105,6 +114,19 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private void bindItem(ItemViewHolder holder, int position) {
         CartEntry item = cartItems.get(position);
+        holder.cbSelectItem.setOnCheckedChangeListener(null);
+        holder.cbSelectItem.setChecked(item.isSelected());
+
+        holder.cbSelectItem.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION) {
+                cartItems.get(adapterPosition).setSelected(isChecked);
+                if (actionListener != null) {
+                    actionListener.onSelectionChanged(adapterPosition, isChecked);
+                }
+            }
+        });
+
         if (item.getImageUrl() != null && !item.getImageUrl().trim().isEmpty()) {
             Glide.with(holder.itemView.getContext())
                     .load(item.getImageUrl())
@@ -153,6 +175,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     static class ItemViewHolder extends RecyclerView.ViewHolder {
+        CheckBox cbSelectItem;
         ImageView imgProduct;
         ImageView btnDelete;
         TextView btnDecrease;
@@ -164,6 +187,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         ItemViewHolder(@NonNull View itemView) {
             super(itemView);
+            cbSelectItem = itemView.findViewById(R.id.cbSelectItem);
             imgProduct = itemView.findViewById(R.id.imgProduct);
             btnDelete = itemView.findViewById(R.id.btnDelete);
             btnDecrease = itemView.findViewById(R.id.btnDecrease);

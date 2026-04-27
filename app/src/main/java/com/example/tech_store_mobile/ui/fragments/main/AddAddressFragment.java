@@ -15,6 +15,7 @@ import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -148,6 +149,11 @@ public class AddAddressFragment extends Fragment {
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.dialog_success);
 
+        TextView title = dialog.findViewById(R.id.tv_success_title);
+        TextView message = dialog.findViewById(R.id.tv_success_message);
+        if (title != null) title.setText(R.string.dialog_address_success_title);
+        if (message != null) message.setText(R.string.dialog_address_success_message);
+
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             // Quan trọng: Căn giữa Dialog
@@ -157,10 +163,13 @@ public class AddAddressFragment extends Fragment {
         dialog.setCancelable(false);
 
         AppCompatButton btnThanks = dialog.findViewById(R.id.btn_thanks);
-        btnThanks.setOnClickListener(v -> {
-            dialog.dismiss();
-            requireActivity().onBackPressed();
-        });
+        if (btnThanks != null) {
+            btnThanks.setText(R.string.dialog_address_success_button);
+            btnThanks.setOnClickListener(v -> {
+                dialog.dismiss();
+                requireActivity().onBackPressed();
+            });
+        }
 
         dialog.show();
     }
