@@ -3,6 +3,17 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { input ->
+        localProperties.load(input)
+    }
+}
+
+def stripePublishableKey = localProperties.getProperty("STRIPE_PUBLISHABLE_KEY", "")
+def stripeBackendBaseUrl = localProperties.getProperty("STRIPE_BACKEND_BASE_URL", "")
+
 android {
     namespace 'com.example.tech_store_mobile'
     compileSdk 36
@@ -15,6 +26,8 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "String", "STRIPE_PUBLISHABLE_KEY", "\"${stripePublishableKey}\""
+        buildConfigField "String", "STRIPE_BACKEND_BASE_URL", "\"${stripeBackendBaseUrl}\""
     }
 
     buildTypes {
@@ -27,6 +40,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+
+    buildFeatures {
+        buildConfig true
+    }
+
 }
 
 dependencies {
@@ -34,6 +52,7 @@ dependencies {
     implementation libs.material
     implementation libs.activity
     implementation libs.constraintlayout
+    implementation 'com.stripe:stripe-android:20.48.0'
 
     implementation platform('com.google.firebase:firebase-bom:34.12.0')
 

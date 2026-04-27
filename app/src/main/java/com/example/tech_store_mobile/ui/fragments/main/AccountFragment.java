@@ -14,9 +14,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
+import com.example.tech_store_mobile.utils.MainNavigationHelper;
 import com.google.android.material.button.MaterialButton;
-import com.google.firebase.auth.FirebaseAuth;
 
 public class AccountFragment extends Fragment {
 
@@ -37,9 +38,14 @@ public class AccountFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        ImageView btnBack = view.findViewById(R.id.btn_back_search);
         accountContentContainer = view.findViewById(R.id.accountContentContainer);
         accountGuestState = view.findViewById(R.id.accountGuestState);
         MaterialButton btnAccountSignIn = view.findViewById(R.id.btnAccountSignIn);
+
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> navigateBack());
+        }
 
         if (btnAccountSignIn != null) {
             btnAccountSignIn.setOnClickListener(v -> AuthUiHelper.openLogin(this));
@@ -59,7 +65,9 @@ public class AccountFragment extends Fragment {
         }
 
         // 4. Payment Methods
-        setupMenuItem(view.findViewById(R.id.item_payment_methods), "Payment Methods", R.drawable.card);
+        View paymentView = view.findViewById(R.id.item_payment_methods);
+        setupMenuItem(paymentView, "Payment Methods", R.drawable.card_1_black);
+        paymentView.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
 
         // 5. Help Center
         setupMenuItem(view.findViewById(R.id.item_help_center), "Help Center", R.drawable.headphones);
@@ -69,7 +77,7 @@ public class AccountFragment extends Fragment {
         setupMenuItem(logoutView, "Logout", R.drawable.logout);
         if (logoutView != null) {
             logoutView.setOnClickListener(v -> {
-                FirebaseAuth.getInstance().signOut();
+                AuthManager.signOut();
                 renderAuthState();
                 Toast.makeText(requireContext(), R.string.auth_logout_success, Toast.LENGTH_SHORT).show();
             });
@@ -121,7 +129,7 @@ public class AccountFragment extends Fragment {
             // 2. Hiện container, ẩn ViewPager và ẩn Bottom Navigation
             container.setVisibility(View.VISIBLE);
             viewPager.setVisibility(View.GONE);
-            bottomNav.setVisibility(View.GONE); // ẨN THANH MENU DƯỚI
+            bottomNav.setVisibility(View.GONE);
         }
 
         // 3. Chuyển Fragment
@@ -132,7 +140,7 @@ public class AccountFragment extends Fragment {
     }
 
     private void renderAuthState() {
-        boolean loggedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
+        boolean loggedIn = AuthManager.isLoggedIn();
 
         if (accountContentContainer != null) {
             accountContentContainer.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
@@ -140,6 +148,10 @@ public class AccountFragment extends Fragment {
         if (accountGuestState != null) {
             accountGuestState.setVisibility(loggedIn ? View.GONE : View.VISIBLE);
         }
+    }
+
+    private void navigateBack() {
+        MainNavigationHelper.navigateBackToHome(this);
     }
 
 }

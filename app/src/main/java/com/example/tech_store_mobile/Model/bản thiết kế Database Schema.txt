@@ -115,7 +115,58 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
   - `location`: `string`
   - `timestamp`: `timestamp`
 
-## 8) notifications
+## 8) hoa_dons
+**Muc dich:** Luu hoa don thanh toan/hoa don dien tu duoc tao tu don hang, phuc vu doi soat va lich su thanh toan.
+
+**Fields:**
+- `hoaDonId`: `string`
+- `userId`: `string` - UID tu Firebase Auth
+- `orderId`: `string` - lien ket den `orders.orderId`
+- `invoiceNumber`: `string` - ma hoa don hien thi cho nguoi dung
+- `issueDate`: `timestamp`
+- `dueDate`: `timestamp` (neu co han thanh toan)
+- `paymentStatus`: `string` (`Pending` | `Paid` | `Failed` | `Refunded`)
+- `paymentMethod`: `string` (vd: Visa, Cash)
+- `paymentGateway`: `string` (vd: Stripe)
+- `transactionId`: `string` (ma giao dich tu cong thanh toan)
+- `items`: `array<map>`
+  - `productId`: `string`
+  - `productName`: `string`
+  - `quantity`: `number`
+  - `price`: `number`
+  - `imageUrl`: `string`
+  - `color`: `string`
+- `summary`: `map`
+  - `subTotal`: `number`
+  - `shippingFee`: `number`
+  - `vatAmount`: `number`
+  - `discountAmount`: `number`
+  - `totalAmount`: `number`
+- `shippingAddress`: `map` (snapshot dia chi luc thanh toan)
+- `note`: `string`
+- `createdAt`: `timestamp`
+
+## 9) lich_su_thanh_toans
+**Muc dich:** Luu tung giao dich thanh toan de truy vet trang thai, doi soat va hien thi lich su cho user.
+
+**Fields:**
+- `paymentHistoryId`: `string`
+- `userId`: `string` - UID tu Firebase Auth
+- `hoaDonId`: `string` - lien ket den `hoa_dons.hoaDonId`
+- `orderId`: `string` - lien ket den `orders.orderId`
+- `paymentMethod`: `string` (vd: Visa, Cash)
+- `paymentGateway`: `string` (vd: Stripe)
+- `paymentStatus`: `string` (`Pending` | `Succeeded` | `Failed` | `Canceled` | `Refunded`)
+- `transactionId`: `string`
+- `stripePaymentIntentId`: `string`
+- `amount`: `number`
+- `currency`: `string` (vd: USD)
+- `paidAt`: `timestamp`
+- `createdAt`: `timestamp`
+- `failureReason`: `string`
+- `note`: `string`
+
+## 10) notifications
 **Muc dich:** Gui va luu thong bao den user.
 
 **Fields:**
@@ -127,7 +178,7 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 - `isRead`: `boolean`
 - `createdAt`: `timestamp`
 
-## 9) reviews
+## 11) reviews
 **Muc dich:** Luu danh gia san pham cua nguoi dung.
 
 **Fields:**
@@ -139,7 +190,7 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 - `comment`: `string`
 - `createdAt`: `timestamp`
 
-## 10) search_history
+## 12) search_history
 **Muc dich:** Luu tu khoa tim kiem gan day cua user.
 
 **Fields:**
@@ -158,6 +209,8 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 - `Cart`: Trang thai gio hang theo user (tong quan gio + danh sach item + thoi gian cap nhat).
 - `CartItem`: Tung dong san pham trong gio (so luong, mau, gia tai thoi diem them).
 - `Order`: Don hang tong the, gom trang thai, danh sach item, thanh toan, dia chi, tracking.
+- `HoaDon`: Hoa don thanh toan, snapshot thong tin don hang va trang thai thanh toan de doi soat.
+- `LichSuThanhToan`: Nhat ky giao dich thanh toan theo user/hoa don, phuc vu tra cuu va retry.
 - `OrderItem`: Snapshot san pham trong don hang de tranh sai lech khi gia/thong tin san pham thay doi sau nay.
 - `OrderSummary`: Tong hop tien truoc/sau phi ship va VAT de render man hinh thanh toan/chi tiet don.
 - `ShippingAddressSnapshot`: Snapshot dia chi giao nhan tai thoi diem dat don.

@@ -3,12 +3,14 @@ package com.example.tech_store_mobile.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.R;
 
 import java.util.List;
@@ -20,6 +22,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final List<CartEntry> cartItems;
     private final OnCartActionListener actionListener;
+    private OnCartItemClickListener itemClickListener;
 
     public CartAdapter(List<CartEntry> cartItems, OnCartActionListener actionListener) {
         this.cartItems = cartItems;
@@ -27,29 +30,43 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     public static class CartEntry {
+        private final String cartDocId;
         private final String productId;
         private final String productName;
         private final String selectedColor;
-        private final int imageResId;
+        private final Integer imageResId;
+        private final String imageUrl;
         private final double priceAtAdded;
         private int quantity;
+        private boolean selected;
 
-        public CartEntry(String productId, String productName, String selectedColor, int imageResId, double priceAtAdded, int quantity) {
+        public CartEntry(String cartDocId, String productId, String productName, String selectedColor, String imageUrl, double priceAtAdded, int quantity) {
+            this(cartDocId, productId, productName, selectedColor, null, imageUrl, priceAtAdded, quantity, false);
+        }
+
+        private CartEntry(String cartDocId, String productId, String productName, String selectedColor, Integer imageResId, String imageUrl, double priceAtAdded, int quantity, boolean selected) {
+            this.cartDocId = cartDocId;
             this.productId = productId;
             this.productName = productName;
             this.selectedColor = selectedColor;
             this.imageResId = imageResId;
+            this.imageUrl = imageUrl;
             this.priceAtAdded = priceAtAdded;
             this.quantity = quantity;
+            this.selected = selected;
         }
 
+        public String getCartDocId() { return cartDocId; }
         public String getProductId() { return productId; }
         public String getProductName() { return productName; }
         public String getSelectedColor() { return selectedColor; }
-        public int getImageResId() { return imageResId; }
+        public Integer getImageResId() { return imageResId; }
+        public String getImageUrl() { return imageUrl; }
         public double getPriceAtAdded() { return priceAtAdded; }
         public int getQuantity() { return quantity; }
         public void setQuantity(int quantity) { this.quantity = quantity; }
+        public boolean isSelected() { return selected; }
+        public void setSelected(boolean selected) { this.selected = selected; }
         public double getLineTotal() { return priceAtAdded * quantity; }
     }
 
@@ -57,6 +74,15 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onIncreaseQuantity(int position);
         void onDecreaseQuantity(int position);
         void onDeleteItem(int position);
+        void onSelectionChanged(int position, boolean selected);
+    }
+
+    public interface OnCartItemClickListener {
+        void onCartItemClick(CartEntry item);
+    }
+
+    public void setOnCartItemClickListener(OnCartItemClickListener itemClickListener) {
+        this.itemClickListener = itemClickListener;
     }
 
     @Override
@@ -88,20 +114,59 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private void bindItem(ItemViewHolder holder, int position) {
         CartEntry item = cartItems.get(position);
-        holder.imgProduct.setImageResource(item.getImageResId());
+        holder.cbSelectItem.setOnCheckedChangeListener(null);
+        holder.cbSelectItem.setChecked(item.isSelected());
+
+        holder.cbSelectItem.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION) {
+                cartItems.get(adapterPosition).setSelected(isChecked);
+                if (actionListener != null) {
+                    actionListener.onSelectionChanged(adapterPosition, isChecked);
+                }
+            }
+        });
+
+        if (item.getImageUrl() != null && !item.getImageUrl().trim().isEmpty()) {
+            Glide.with(holder.itemView.getContext())
+                    .load(item.getImageUrl())
+                    .placeholder(R.drawable.watch)
+                    .error(R.drawable.watch)
+                    .into(holder.imgProduct);
+        } else if (item.getImageResId() != null) {
+            holder.imgProduct.setImageResource(item.getImageResId());
+        } else {
+            holder.imgProduct.setImageResource(R.drawable.watch);
+        }
         holder.tvProductName.setText(item.getProductName());
         holder.tvColor.setText(item.getSelectedColor());
         holder.tvPrice.setText(formatMoney(item.getPriceAtAdded()));
         holder.tvQuantity.setText(String.valueOf(item.getQuantity()));
 
         holder.btnDelete.setOnClickListener(v -> {
-            if (actionListener != null) actionListener.onDeleteItem(position);
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && actionListener != null) {
+                actionListener.onDeleteItem(adapterPosition);
+            }
         });
         holder.btnDecrease.setOnClickListener(v -> {
-            if (actionListener != null) actionListener.onDecreaseQuantity(position);
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && actionListener != null) {
+                actionListener.onDecreaseQuantity(adapterPosition);
+            }
         });
         holder.btnIncrease.setOnClickListener(v -> {
-            if (actionListener != null) actionListener.onIncreaseQuantity(position);
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && actionListener != null) {
+                actionListener.onIncreaseQuantity(adapterPosition);
+            }
+        });
+
+        holder.itemView.setOnClickListener(v -> {
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION && itemClickListener != null) {
+                itemClickListener.onCartItemClick(cartItems.get(adapterPosition));
+            }
         });
     }
 
@@ -110,6 +175,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     static class ItemViewHolder extends RecyclerView.ViewHolder {
+        CheckBox cbSelectItem;
         ImageView imgProduct;
         ImageView btnDelete;
         TextView btnDecrease;
@@ -121,6 +187,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         ItemViewHolder(@NonNull View itemView) {
             super(itemView);
+            cbSelectItem = itemView.findViewById(R.id.cbSelectItem);
             imgProduct = itemView.findViewById(R.id.imgProduct);
             btnDelete = itemView.findViewById(R.id.btnDelete);
             btnDecrease = itemView.findViewById(R.id.btnDecrease);

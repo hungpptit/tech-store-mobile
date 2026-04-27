@@ -8,7 +8,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Patterns;
 import android.view.View;
-import android.widget.TextView;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -17,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.UserProfileSyncHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -29,19 +31,22 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
 
+import java.util.Locale;
+
 public class LoginActivity extends AppCompatActivity {
 
     // Views Login
     private TextInputLayout tipLoginEmail, tipLoginPassword;
     private TextInputEditText edtLoginEmail, edtLoginPassword;
     private MaterialButton btnLogin;
+    private ImageView btnAuthBack;
 
     // Views Overlay Success
     private View layoutSuccessOverlay;
     private MaterialButton btnThanks;
 
     // Firebase & Google
-    private FirebaseAuth mAuth;
+    private final FirebaseAuth mAuth = AuthManager.getAuth();
     private GoogleSignInClient googleSignInClient;
     private ActivityResultLauncher<Intent> googleSignInLauncher;
 
@@ -50,7 +55,6 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        mAuth = FirebaseAuth.getInstance();
 
         initViews();
         configureGoogleSignIn();
@@ -64,12 +68,17 @@ public class LoginActivity extends AppCompatActivity {
         edtLoginEmail = findViewById(R.id.edtLoginEmail);
         edtLoginPassword = findViewById(R.id.edtLoginPassword);
         btnLogin = findViewById(R.id.btnLogin);
+        btnAuthBack = findViewById(R.id.btnAuthBack);
         layoutSuccessOverlay = findViewById(R.id.layoutSuccessOverlay);
         btnThanks = findViewById(R.id.btn_thanks);
     }
 
     private void setupListeners() {
         btnLogin.setOnClickListener(v -> attemptLogin());
+
+        if (btnAuthBack != null) {
+            btnAuthBack.setOnClickListener(v -> finish());
+        }
 
         findViewById(R.id.btnGoogleLogin).setOnClickListener(v -> startGoogleSignIn());
 
@@ -98,8 +107,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String email = s.toString().trim();
-                if (Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                    // ĐỔI SANG MÀU XANH KHI ĐÚNG ĐỊNH DẠNG
+                if (isValidGmailAddress(email)) {
                     tipLoginEmail.setBoxStrokeColor(Color.parseColor("#4CAF50"));
                     tipLoginEmail.setEndIconDrawable(R.drawable.check_circle);
                     tipLoginEmail.setEndIconTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50")));
@@ -116,8 +124,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void attemptLogin() {
-        String email = edtLoginEmail.getText().toString().trim();
-        String password = edtLoginPassword.getText().toString();
+        String email = edtLoginEmail.getText() != null ? edtLoginEmail.getText().toString().trim() : "";
+        String password = edtLoginPassword.getText() != null ? edtLoginPassword.getText().toString() : "";
 
         // 1. Reset lỗi cũ về null để bắt đầu kiểm tra mới
         tipLoginEmail.setError(null);
@@ -132,6 +140,9 @@ public class LoginActivity extends AppCompatActivity {
         } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             // Nếu gõ linh tinh không đúng định dạng mail
             tipLoginEmail.setError("Invalid email format");
+            isValid = false;
+        } else if (!isGmailAddress(email)) {
+            tipLoginEmail.setError(getString(R.string.auth_error_email_gmail_only));
             isValid = false;
         }
 
@@ -161,9 +172,9 @@ public class LoginActivity extends AppCompatActivity {
                         // Xử lý lỗi trả về từ Server Firebase
                         String errorMessage = task.getException() != null ? task.getException().getMessage() : "";
 
-                        if (errorMessage.contains("password")) {
+                        if (errorMessage != null && errorMessage.contains("password")) {
                             tipLoginPassword.setError("Invalid password. Please try again.");
-                        } else if (errorMessage.contains("user") || errorMessage.contains("record")) {
+                        } else if (errorMessage != null && (errorMessage.contains("user") || errorMessage.contains("record"))) {
                             tipLoginEmail.setError("Email not found. Please register first.");
                         } else {
                             tipLoginEmail.setError("Authentication failed.");
@@ -219,18 +230,52 @@ public class LoginActivity extends AppCompatActivity {
         Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
         try {
             GoogleSignInAccount account = task.getResult(ApiException.class);
-            if (account != null) firebaseAuthWithGoogle(account.getIdToken());
+            if (account != null) {
+                String email = account.getEmail();
+                if (!isGmailAddress(email)) {
+                    Toast.makeText(this, R.string.auth_error_google_gmail_only, Toast.LENGTH_LONG).show();
+                    if (googleSignInClient != null) {
+                        googleSignInClient.signOut();
+                    }
+                    return;
+                }
+                firebaseAuthWithGoogle(
+                        account.getIdToken(),
+                        account.getDisplayName(),
+                        email,
+                        account.getPhotoUrl() != null ? account.getPhotoUrl().toString() : null
+                );
+            }
         } catch (ApiException e) {
             Toast.makeText(this, "Google Error", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void firebaseAuthWithGoogle(String idToken) {
+    private void firebaseAuthWithGoogle(String idToken, String displayName, String email, String avatarUrl) {
         setLoading(true);
         mAuth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null))
                 .addOnCompleteListener(this, task -> {
                     setLoading(false);
-                    if (task.isSuccessful()) showSuccessDialog();
+                    if (task.isSuccessful() && AuthManager.getCurrentUser() != null) {
+                        UserProfileSyncHelper.syncGoogleUserProfile(
+                                AuthManager.getCurrentUser().getUid(),
+                                displayName,
+                                email,
+                                avatarUrl,
+                                new UserProfileSyncHelper.SyncCallback() {
+                                    @Override
+                                    public void onSuccess() {
+                                        showSuccessDialog();
+                                    }
+
+                                    @Override
+                                    public void onFailure(Exception exception) {
+                                        Toast.makeText(LoginActivity.this, "Saved Google sign-in, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                                        showSuccessDialog();
+                                    }
+                                }
+                        );
+                    }
                 });
     }
 
@@ -238,5 +283,17 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setEnabled(!isLoading);
         btnLogin.setText(isLoading ? "Loading..." : "Login");
         btnLogin.setAlpha(isLoading ? 0.7f : 1.0f);
+    }
+
+    private boolean isValidGmailAddress(String email) {
+        return isEmailFormatValid(email) && isGmailAddress(email);
+    }
+
+    private boolean isEmailFormatValid(String email) {
+        return email != null && Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+
+    private boolean isGmailAddress(String email) {
+        return email != null && email.toLowerCase(Locale.US).endsWith("@gmail.com");
     }
 }
