@@ -27,15 +27,20 @@ import androidx.viewpager.widget.ViewPager;
 import com.example.tech_store_mobile.Model.Address;
 import com.example.tech_store_mobile.Model.CreatePaymentIntentRequest;
 import com.example.tech_store_mobile.Model.CreatePaymentIntentResponse;
+import com.example.tech_store_mobile.Model.HoaDon;
+import com.example.tech_store_mobile.Model.Order;
+import com.example.tech_store_mobile.Model.OrderItem;
+import com.example.tech_store_mobile.Model.OrderSummary;
 import com.example.tech_store_mobile.Model.LichSuThanhToan;
 import com.example.tech_store_mobile.Model.PaymentMethod;
+import com.example.tech_store_mobile.Model.ShippingAddressSnapshot;
+import com.example.tech_store_mobile.Model.TrackingHistoryItem;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.MainNavigationHelper;
 import com.example.tech_store_mobile.utils.StripeConfig;
 import com.example.tech_store_mobile.utils.StripePaymentApiClient;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import androidx.appcompat.widget.AppCompatButton;
 import com.google.android.material.button.MaterialButton;
@@ -84,6 +89,8 @@ public class CheckoutFragment extends Fragment {
     private boolean isCardPaymentSelected = true;
     private String defaultAddressId;
     private String defaultPaymentId;
+    private String currentUserFullName;
+    private String currentUserPhoneNumber;
     private Address selectedAddress;
     private PaymentMethod selectedPaymentMethod;
     private ArrayList<String> selectedCartDocIds = new ArrayList<>();
@@ -187,6 +194,8 @@ public class CheckoutFragment extends Fragment {
                         return;
                     }
 
+                    currentUserFullName = snapshot.getString("fullName");
+                    currentUserPhoneNumber = snapshot.getString("phoneNumber");
                     defaultAddressId = snapshot.getString("defaultAddressId");
                     defaultPaymentId = snapshot.getString("defaultPaymentId");
 
@@ -485,49 +494,168 @@ public class CheckoutFragment extends Fragment {
     }
 
     private void savePaymentHistoryAndClearCart(String userId, String orderId, CreatePaymentIntentResponse response) {
-        String paymentHistoryId = db.collection("lich_su_thanh_toans").document().getId();
-        double amount = response.getAmount() != null ? response.getAmount() / 100.0 : total;
-        String currency = !TextUtils.isEmpty(response.getCurrency()) ? response.getCurrency() : StripeConfig.CURRENCY_USD;
+        if (!isAdded()) {
+            return;
+        }
+
+        loadSelectedOrderItems(userId, orderId, response, 0, new ArrayList<>());
+    }
+
+    private void loadSelectedOrderItems(String userId, String orderId, CreatePaymentIntentResponse response,
+                                        int index, List<OrderItem> orderItems) {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (selectedCartDocIds == null || index >= selectedCartDocIds.size()) {
+            persistOrderInvoiceAndHistory(userId, orderId, response, orderItems);
+            return;
+        }
+
+        String cartDocId = selectedCartDocIds.get(index);
+        if (TextUtils.isEmpty(cartDocId)) {
+            loadSelectedOrderItems(userId, orderId, response, index + 1, orderItems);
+            return;
+        }
+
+        db.collection("carts").document(cartDocId)
+                .get()
+                .addOnSuccessListener(cartSnapshot -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+
+                    String productId = cartSnapshot.getString("productId");
+                    Long quantity = cartSnapshot.getLong("quantity");
+                    String selectedColor = safeText(cartSnapshot.getString("selectedColor"), "");
+                    Double priceAtAdded = cartSnapshot.getDouble("priceAtAdded");
+
+                    if (TextUtils.isEmpty(productId)) {
+                        loadSelectedOrderItems(userId, orderId, response, index + 1, orderItems);
+                        return;
+                    }
+
+                    db.collection("products").document(productId)
+                            .get()
+                            .addOnSuccessListener(productSnapshot -> {
+                                if (!isAdded()) {
+                                    return;
+                                }
+
+                                String productName = safeText(productSnapshot.getString("productName"), productId);
+                                String imageUrl = productSnapshot.getString("imageUrl");
+                                Double price = priceAtAdded != null ? priceAtAdded : productSnapshot.getDouble("finalPrice");
+
+                                orderItems.add(new OrderItem(
+                                        productId,
+                                        productName,
+                                        quantity != null ? quantity : 1L,
+                                        price != null ? price : 0.0,
+                                        imageUrl,
+                                        selectedColor
+                                ));
+
+                                loadSelectedOrderItems(userId, orderId, response, index + 1, orderItems);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.w(TAG, "Failed to load product for order item", e);
+                                orderItems.add(new OrderItem(
+                                        productId,
+                                        productId,
+                                        quantity != null ? quantity : 1L,
+                                        priceAtAdded != null ? priceAtAdded : 0.0,
+                                        null,
+                                        selectedColor
+                                ));
+                                loadSelectedOrderItems(userId, orderId, response, index + 1, orderItems);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Failed to load cart item for order", e);
+                    loadSelectedOrderItems(userId, orderId, response, index + 1, orderItems);
+                });
+    }
+
+    private void persistOrderInvoiceAndHistory(String userId, String orderId, CreatePaymentIntentResponse response,
+                                               List<OrderItem> orderItems) {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (orderItems == null || orderItems.isEmpty()) {
+            Log.w(TAG, "No order items found while saving checkout data.");
+            Toast.makeText(requireContext(), "Không thể lưu đơn hàng vì không có sản phẩm hợp lệ.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Timestamp now = Timestamp.now();
         String paymentIntentId = !TextUtils.isEmpty(response.getPaymentIntentId()) ? response.getPaymentIntentId() : "";
+        String currency = !TextUtils.isEmpty(response.getCurrency()) ? response.getCurrency() : StripeConfig.CURRENCY_USD;
+        double amount = response.getAmount() != null ? response.getAmount() / 100.0 : total;
+        String paymentMethodLabel = buildPaymentMethodLabel();
+        String orderDocumentId = !TextUtils.isEmpty(orderId) ? orderId : db.collection("orders").document().getId();
+        String hoaDonId = db.collection("hoa_dons").document().getId();
+        String paymentHistoryId = db.collection("lich_su_thanh_toans").document().getId();
+        String invoiceNumber = "INV-" + System.currentTimeMillis();
+
+        Order order = new Order(
+                orderDocumentId,
+                userId,
+                now,
+                "Packing",
+                orderItems,
+                new OrderSummary(subtotal, shipping, vat, total),
+                buildShippingAddressSnapshot(),
+                paymentMethodLabel,
+                buildTrackingHistory(now)
+        );
+
+        HoaDon hoaDon = new HoaDon(
+                hoaDonId,
+                userId,
+                orderDocumentId,
+                invoiceNumber,
+                now,
+                null,
+                "Paid",
+                paymentMethodLabel,
+                "Stripe",
+                paymentIntentId,
+                orderItems,
+                new OrderSummary(subtotal, shipping, vat, total),
+                buildShippingAddressSnapshot(),
+                "Thanh toán thành công qua Stripe",
+                now
+        );
 
         LichSuThanhToan history = new LichSuThanhToan(
                 paymentHistoryId,
                 userId,
-                null,
-                orderId,
-                safeText(selectedPaymentMethod != null ? selectedPaymentMethod.getCardType() : null, "Card"),
+                hoaDonId,
+                orderDocumentId,
+                paymentMethodLabel,
                 "Stripe",
                 "Succeeded",
                 paymentIntentId,
                 paymentIntentId,
                 amount,
                 currency,
-                Timestamp.now(),
-                Timestamp.now(),
+                now,
+                now,
                 null,
                 ""
         );
 
-        db.collection("lich_su_thanh_toans").document(paymentHistoryId).set(history)
-                .addOnSuccessListener(unused -> clearCartAndGoHome(userId))
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to save payment history", e);
-                    Toast.makeText(requireContext(), "Thanh toán thành công nhưng không lưu được lịch sử: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    clearCartAndGoHome(userId);
-                });
-    }
-
-    private void clearCartAndGoHome(String userId) {
-        if (selectedCartDocIds == null || selectedCartDocIds.isEmpty()) {
-            markCartNeedsReload();
-            showPaymentSuccessDialog();
-            return;
-        }
-
         WriteBatch batch = db.batch();
-        for (String docId : selectedCartDocIds) {
-            if (!TextUtils.isEmpty(docId)) {
-                batch.delete(db.collection("carts").document(docId));
+        batch.set(db.collection("orders").document(orderDocumentId), order);
+        batch.set(db.collection("hoa_dons").document(hoaDonId), hoaDon);
+        batch.set(db.collection("lich_su_thanh_toans").document(paymentHistoryId), history);
+
+        if (selectedCartDocIds != null) {
+            for (String docId : selectedCartDocIds) {
+                if (!TextUtils.isEmpty(docId)) {
+                    batch.delete(db.collection("carts").document(docId));
+                }
             }
         }
 
@@ -537,10 +665,35 @@ public class CheckoutFragment extends Fragment {
                     showPaymentSuccessDialog();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to clear selected cart items", e);
-                    Toast.makeText(requireContext(), "Thanh toán xong nhưng không xóa được sản phẩm đã chọn: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Failed to save checkout documents", e);
+                    Toast.makeText(requireContext(), "Thanh toán thành công nhưng không lưu được đơn/hóa đơn: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     MainNavigationHelper.navigateBackToHome(this);
                 });
+    }
+
+    private ShippingAddressSnapshot buildShippingAddressSnapshot() {
+        String receiverName = safeText(currentUserFullName, safeText(selectedAddress != null ? selectedAddress.getNickname() : null, "Customer"));
+        String phoneNumber = safeText(currentUserPhoneNumber, "");
+        String fullAddress = safeText(selectedAddress != null ? selectedAddress.getFullAddress() : null, "");
+        String note = safeText(selectedAddress != null ? selectedAddress.getNickname() : null, "");
+
+        return new ShippingAddressSnapshot(receiverName, phoneNumber, fullAddress, note);
+    }
+
+    private String buildPaymentMethodLabel() {
+        if (selectedPaymentMethod == null) {
+            return isCardPaymentSelected ? "Card" : "Cash";
+        }
+
+        String cardType = safeText(selectedPaymentMethod.getCardType(), isCardPaymentSelected ? "Card" : "Cash");
+        String cardNumber = safeText(selectedPaymentMethod.getCardNumber(), "");
+        return TextUtils.isEmpty(cardNumber) ? cardType : cardType + " " + cardNumber;
+    }
+
+    private List<TrackingHistoryItem> buildTrackingHistory(Timestamp now) {
+        List<TrackingHistoryItem> trackingHistory = new ArrayList<>();
+        trackingHistory.add(new TrackingHistoryItem("Packing", "Tech Store", now));
+        return trackingHistory;
     }
 
     private void markCartNeedsReload() {
