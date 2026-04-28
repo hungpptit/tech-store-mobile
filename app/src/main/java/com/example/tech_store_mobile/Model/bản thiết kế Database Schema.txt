@@ -12,12 +12,14 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 
 **Fields:**
 - `userId`: `string` - PK, UID tu Firebase Auth
+- `role`: `string` (`user` | `admin`)
 - `fullName`: `string`
 - `email`: `string`
 - `phoneNumber`: `string`
 - `dateOfBirth`: `string` (dd/MM/yyyy)
 - `gender`: `string` (`Male` | `Female` | `Other`)
 - `avatarUrl`: `string` (link Firebase Storage)
+- `fcmToken`: `string` (token de gui thong bao chat/push)
 - `defaultAddressId`: `string` (tham chieu `addresses.addressId`)
 - `defaultPaymentId`: `string` (tham chieu `payment_methods.paymentId`)
 - `createdAt`: `timestamp`
@@ -196,6 +198,39 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 **Fields:**
 - `userId`: `string` (document ID)
 - `recentKeywords`: `array<string>` (toi da 5-10 tu khoa)
+
+## 13) rooms
+**Muc dich:** Luu danh sach cuoc hoi thoai chat giua user Android va admin Web.
+
+**Cach dung:**
+- Document ID nen dat theo `userId` de admin tim nhanh cuoc hoi thoai cua tung user.
+- Duong dan co the dung: `rooms/{userId}`
+
+**Fields:**
+- `userId`: `string` - UID cua khach hang
+- `userName`: `string` - ten hien thi cua khach hang
+- `lastMessage`: `string` - noi dung tin nhan cuoi cung
+- `updatedAt`: `timestamp` - de sap xep phong chat moi nhat len dau
+- `userUnreadCount`: `number` - so tin nhan admin gui ma user chua doc
+- `adminUnreadCount`: `number` - so tin nhan user gui ma admin chua doc
+
+## 14) messages
+**Muc dich:** Luu danh sach tin nhan ben trong tung room chat.
+
+**Cach dung:**
+- Day la sub-collection cua `rooms`
+- Duong dan: `rooms/{userId}/messages/{messageId}`
+- `messageId` nen de Firebase tu sinh (Auto-ID)
+
+**Fields:**
+- `senderId`: `string` - UID nguoi gui
+- `receiverId`: `string` - UID nguoi nhan
+- `content`: `string` - noi dung text
+- `type`: `string` (`text` | `image` | `invoice`)
+- `fileUrl`: `string` - link anh/file neu co
+- `createdAt`: `timestamp` - bat buoc dung `ServerTimestamp`
+
+> Ghi chu: voi web admin, co the doc danh sach room tu `rooms`, sau do vao `messages` cua tung room de xem noi dung chat.
 
 ---
 

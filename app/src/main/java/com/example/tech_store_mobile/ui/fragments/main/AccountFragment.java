@@ -16,6 +16,7 @@ import android.widget.Toast;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
+import com.example.tech_store_mobile.utils.FcmTokenSyncHelper;
 import com.example.tech_store_mobile.utils.MainNavigationHelper;
 import com.google.android.material.button.MaterialButton;
 
@@ -70,17 +71,21 @@ public class AccountFragment extends Fragment {
         paymentView.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
 
         // 5. Help Center
-        setupMenuItem(view.findViewById(R.id.item_help_center), "Help Center", R.drawable.headphones);
+        View helpCenterView = view.findViewById(R.id.item_help_center);
+        setupMenuItem(helpCenterView, "Help Center", R.drawable.headphones);
+        if (helpCenterView != null) {
+            helpCenterView.setOnClickListener(v -> replaceFragment(new HelpCenterFragment()));
+        }
 
         // 6. Logout
         View logoutView = view.findViewById(R.id.item_logout);
         setupMenuItem(logoutView, "Logout", R.drawable.logout);
         if (logoutView != null) {
-            logoutView.setOnClickListener(v -> {
+            logoutView.setOnClickListener(v -> FcmTokenSyncHelper.deactivateCurrentToken(() -> {
                 AuthManager.signOut();
                 renderAuthState();
                 Toast.makeText(requireContext(), R.string.auth_logout_success, Toast.LENGTH_SHORT).show();
-            });
+            }));
 
             TextView tvLogout = logoutView.findViewById(R.id.tv_menu_title);
             if (tvLogout != null) {

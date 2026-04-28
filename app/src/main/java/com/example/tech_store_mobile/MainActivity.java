@@ -13,6 +13,7 @@ import androidx.viewpager.widget.ViewPager;
 import com.example.tech_store_mobile.adapters.ViewpagerAdapter;
 import com.example.tech_store_mobile.ui.fragments.main.HomeFragment;
 import com.example.tech_store_mobile.utils.FirebaseConfig;
+import com.example.tech_store_mobile.utils.FcmTokenSyncHelper;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
@@ -29,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 🔥 Cấu hình Firebase
         FirebaseConfig.configureFirestore();
+        FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
 
         // 🔥 Khởi tạo Firebase data lần đầu tiên
         // DISABLED: Bạn đã có data rồi, không cần auto-create

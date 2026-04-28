@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.FcmTokenSyncHelper;
 import com.example.tech_store_mobile.utils.UserProfileSyncHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -163,6 +164,7 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     setLoading(false);
                     if (task.isSuccessful()) {
+                        FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                         Toast.makeText(this, "Login successful!", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -265,11 +267,13 @@ public class LoginActivity extends AppCompatActivity {
                                 new UserProfileSyncHelper.SyncCallback() {
                                     @Override
                                     public void onSuccess() {
+                                        FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                                         showSuccessDialog();
                                     }
 
                                     @Override
                                     public void onFailure(Exception exception) {
+                                        FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                                         Toast.makeText(LoginActivity.this, "Saved Google sign-in, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
                                         showSuccessDialog();
                                     }
