@@ -16,7 +16,6 @@ import android.widget.Toast;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
-import com.example.tech_store_mobile.utils.FcmTokenSyncHelper;
 import com.example.tech_store_mobile.utils.MainNavigationHelper;
 import com.google.android.material.button.MaterialButton;
 
@@ -81,8 +80,10 @@ public class AccountFragment extends Fragment {
         View logoutView = view.findViewById(R.id.item_logout);
         setupMenuItem(logoutView, "Logout", R.drawable.logout);
         if (logoutView != null) {
-            logoutView.setOnClickListener(v -> FcmTokenSyncHelper.deactivateCurrentToken(() -> {
-                AuthManager.signOut();
+            logoutView.setOnClickListener(v -> AuthManager.logoutSafely(() -> {
+                if (!isAdded()) {
+                    return;
+                }
                 renderAuthState();
                 Toast.makeText(requireContext(), R.string.auth_logout_success, Toast.LENGTH_SHORT).show();
             }));

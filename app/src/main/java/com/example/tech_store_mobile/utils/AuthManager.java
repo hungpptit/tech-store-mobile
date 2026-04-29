@@ -28,5 +28,20 @@ public final class AuthManager {
     public static void signOut() {
         getAuth().signOut();
     }
+
+    public static void logoutSafely(Runnable onComplete) {
+        Runnable safeCallback = onComplete != null ? onComplete : () -> { };
+
+        if (!isLoggedIn()) {
+            signOut();
+            safeCallback.run();
+            return;
+        }
+
+        FcmTokenSyncHelper.deactivateCurrentToken(() -> {
+            signOut();
+            safeCallback.run();
+        });
+    }
 }
 
