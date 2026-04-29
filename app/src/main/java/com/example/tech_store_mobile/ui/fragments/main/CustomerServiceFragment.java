@@ -181,20 +181,14 @@ public class CustomerServiceFragment extends Fragment {
 
         DocumentReference roomRef = db.collection("rooms").document(currentUserId);
         
-        batch.set(roomRef, new ChatRoom(
-                currentUserId,
-                currentUserName,
-                content,
-                Timestamp.now(),
-                0L,
-                1L
-        ), SetOptions.merge());
-
-        batch.update(roomRef, 
-            "lastMessage", content,
-            "updatedAt", FieldValue.serverTimestamp(),
-            "adminUnreadCount", FieldValue.increment(1)
-        );
+        java.util.Map<String, Object> roomUpdates = new java.util.HashMap<>();
+        roomUpdates.put("userId", currentUserId);
+        roomUpdates.put("userName", currentUserName);
+        roomUpdates.put("lastMessage", content);
+        roomUpdates.put("updatedAt", FieldValue.serverTimestamp());
+        roomUpdates.put("adminUnreadCount", FieldValue.increment(1));
+        
+        batch.set(roomRef, roomUpdates, SetOptions.merge());
 
         batch.commit().addOnFailureListener(e -> {
             Log.e(TAG, "Error sending message", e);

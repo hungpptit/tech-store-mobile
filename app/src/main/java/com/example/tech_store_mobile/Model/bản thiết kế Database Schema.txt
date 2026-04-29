@@ -213,6 +213,10 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 - `updatedAt`: `timestamp` - de sap xep phong chat moi nhat len dau
 - `userUnreadCount`: `number` - so tin nhan admin gui ma user chua doc
 - `adminUnreadCount`: `number` - so tin nhan user gui ma admin chua doc
+- `isStarredByAdmin`: `boolean` - Đánh dấu phòng chat quan trọng (Gắn sao)
+- `isSpamByAdmin`: `boolean` - Đánh dấu spam
+- `isDeletedByAdmin`: `boolean` - Đánh dấu xóa
+- `isImportByAdmin`: `boolean` - Đánh dấu quan trọng
 
 ## 14) messages
 **Muc dich:** Luu danh sach tin nhan ben trong tung room chat.

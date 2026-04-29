@@ -10,18 +10,27 @@ public class ChatRoom {
     private Timestamp updatedAt;
     private Long userUnreadCount;
     private Long adminUnreadCount;
+    private Boolean isStarredByAdmin;
+    private Boolean isSpamByAdmin;
+    private Boolean isDeletedByAdmin;
+    private Boolean isImportByAdmin;
 
     public ChatRoom() {
     }
 
     public ChatRoom(String userId, String userName, String lastMessage, Timestamp updatedAt,
-                    Long userUnreadCount, Long adminUnreadCount) {
+                    Long userUnreadCount, Long adminUnreadCount, Boolean isStarredByAdmin,
+                    Boolean isSpamByAdmin, Boolean isDeletedByAdmin, Boolean isImportByAdmin) {
         this.userId = userId;
         this.userName = userName;
         this.lastMessage = lastMessage;
         this.updatedAt = updatedAt;
         this.userUnreadCount = userUnreadCount;
         this.adminUnreadCount = adminUnreadCount;
+        this.isStarredByAdmin = isStarredByAdmin;
+        this.isSpamByAdmin = isSpamByAdmin;
+        this.isDeletedByAdmin = isDeletedByAdmin;
+        this.isImportByAdmin = isImportByAdmin;
     }
 
     public String getUserId() {
@@ -70,6 +79,38 @@ public class ChatRoom {
 
     public void setAdminUnreadCount(Long adminUnreadCount) {
         this.adminUnreadCount = adminUnreadCount;
+    }
+
+    public Boolean getIsStarredByAdmin() {
+        return isStarredByAdmin;
+    }
+
+    public void setIsStarredByAdmin(Boolean isStarredByAdmin) {
+        this.isStarredByAdmin = isStarredByAdmin;
+    }
+
+    public Boolean getIsSpamByAdmin() {
+        return isSpamByAdmin;
+    }
+
+    public void setIsSpamByAdmin(Boolean isSpamByAdmin) {
+        this.isSpamByAdmin = isSpamByAdmin;
+    }
+
+    public Boolean getIsDeletedByAdmin() {
+        return isDeletedByAdmin;
+    }
+
+    public void setIsDeletedByAdmin(Boolean isDeletedByAdmin) {
+        this.isDeletedByAdmin = isDeletedByAdmin;
+    }
+
+    public Boolean getIsImportByAdmin() {
+        return isImportByAdmin;
+    }
+
+    public void setIsImportByAdmin(Boolean isImportByAdmin) {
+        this.isImportByAdmin = isImportByAdmin;
     }
 }
 
