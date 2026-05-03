@@ -39,7 +39,7 @@ Dự án được xây dựng dựa trên các tiêu chuẩn hiện đại của
 ---
 
 ## 📦 Hướng dẫn cài đặt
-1. Clone dự án: `git clone [URL_CUA_BAN]`
+1. Clone dự án: `git clone https://github.com/hungpptit/tech-store-mobile.git`
 2. Cấu hình file `google-services.json` vào thư mục `app/`.
 3. Thiết lập biến môi trường Stripe trong file `.env` phía backend.
 4. Build dự án bằng Android Studio (Gradle).
