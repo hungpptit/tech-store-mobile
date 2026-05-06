@@ -24,6 +24,8 @@ import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
 
 import com.example.tech_store_mobile.adapters.CartAdapter;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -58,6 +60,8 @@ public class CartFragment extends Fragment {
     private final Set<String> loadedCartKeys = new HashSet<>();
     private CartAdapter cartAdapter;
     private int cartLoadGeneration = 0;
+    private TextView notificationBadgeView;
+    private NotificationBadgeManager.BadgeListener badgeListener;
 
     public CartFragment() {
     }
@@ -88,12 +92,14 @@ public class CartFragment extends Fragment {
         super.onResume();
         showBottomNavigation();
         refreshIfNeeded();
+        startNotificationBadgeListener();
     }
 
     @Override
     public void onPause() {
         super.onPause();
         showBottomNavigation();
+        stopNotificationBadgeListener();
     }
 
     @Override
@@ -105,7 +111,7 @@ public class CartFragment extends Fragment {
     private void initializeViews(View view) {
         btnBack = view.findViewById(R.id.btnBack);
         cartAppBar = view.findViewById(R.id.cartAppBar);
-        ImageView btnNotification = view.findViewById(R.id.btnNotification);
+         ImageView btnNotification = view.findViewById(R.id.btn_notification);
         TextView tvTitle = view.findViewById(R.id.tvTitle);
         rvCart = view.findViewById(R.id.rvCart);
         cartSummaryContainer = view.findViewById(R.id.cartSummary);
@@ -120,6 +126,8 @@ public class CartFragment extends Fragment {
         tvTitle.setText(R.string.cart_title);
         if (btnNotification != null) {
             btnNotification.setVisibility(View.VISIBLE);
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
         }
 
         if (btnCheckout != null) {
@@ -477,6 +485,45 @@ public class CartFragment extends Fragment {
                 .commit();
     }
 
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
+    }
 
     private void showBottomNavigation() {
         if (getActivity() == null) return;

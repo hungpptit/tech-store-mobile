@@ -42,12 +42,12 @@
                     android:textStyle="bold" />
 
                 <ImageView
-                    android:id="@+id/btn_notification_help_center"
+                    android:id="@+id/btn_notification"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:contentDescription="@string/help_center_notification_content_description"
+                    android:contentDescription="@string/notifications"
                     android:src="@drawable/notification" />
             </RelativeLayout>
 

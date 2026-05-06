@@ -27,6 +27,8 @@ import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.SearchAdapter;
 import com.example.tech_store_mobile.adapters.RecentSearchAdapter;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.gson.Gson;
@@ -52,11 +54,64 @@ public class SearchFragment extends Fragment {
     private List<Product> allProducts = new ArrayList<>();
     private List<Product> searchResultList = new ArrayList<>();
     private List<String> historyList = new ArrayList<>();
+    private TextView notificationBadgeView;
+    private NotificationBadgeManager.BadgeListener badgeListener;
 
     private static final String PREFS_NAME = "search_history_prefs";
     private static final String KEY_HISTORY = "recent_searches";
 
     public SearchFragment() {}
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startNotificationBadgeListener();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
+    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -83,6 +138,14 @@ public class SearchFragment extends Fragment {
                 viewPager.setCurrentItem(0);
             }
         });
+
+        // Setup notification button
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
+        }
+
         tvClearAll.setOnClickListener(v -> {
             historyList.clear();
             saveSearchHistoryToDisk();

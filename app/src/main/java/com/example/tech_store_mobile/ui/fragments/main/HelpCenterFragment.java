@@ -6,6 +6,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+// Notification badge is managed centrally by MainActivity
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -14,8 +16,12 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.tech_store_mobile.R;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 
 public class HelpCenterFragment extends Fragment {
+    private NotificationBadgeManager.BadgeListener badgeListener;
+    private TextView notificationBadgeView;
 
     @Nullable
     @Override
@@ -25,8 +31,11 @@ public class HelpCenterFragment extends Fragment {
         view.findViewById(R.id.btn_back_help_center)
                 .setOnClickListener(v -> requireActivity().getOnBackPressedDispatcher().onBackPressed());
 
-        view.findViewById(R.id.btn_notification_help_center)
-                .setOnClickListener(v -> showComingSoon());
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
+        }
 
         view.findViewById(R.id.btn_help_floating)
                 .setOnClickListener(v -> showComingSoon());
@@ -37,6 +46,57 @@ public class HelpCenterFragment extends Fragment {
         bindHelpCard(view.findViewById(R.id.item_facebook), R.drawable.user, R.string.help_center_facebook);
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startNotificationBadgeListener();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void bindHelpCard(View cardView, int iconRes, int titleRes) {

@@ -5,8 +5,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.Toast;
 import android.widget.TextView;
+// imageview references removed; badge is handled in MainActivity
+
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,6 +25,8 @@ import com.example.tech_store_mobile.adapters.CategoryAdapter;
 import com.example.tech_store_mobile.adapters.ProductAdapter;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
@@ -54,6 +59,8 @@ public class HomeFragment extends Fragment {
 
     // Flags
     private boolean isFirstLoad = true;
+    private NotificationBadgeManager.BadgeListener badgeListener;
+    private TextView notificationBadgeView;
 
     @Nullable
     @Override
@@ -69,11 +76,18 @@ public class HomeFragment extends Fragment {
         bestSellersList = new ArrayList<>();
 
         // Map Views
+        // Notification badge is managed centrally by MainActivity
         rvCategories = view.findViewById(R.id.rv_categories_home);
         rvProducts = view.findViewById(R.id.rv_products_home);
         rvBestSellers = view.findViewById(R.id.rv_best_sellers);
         tvViewAllNewProducts = view.findViewById(R.id.tvViewAllNewProducts);
         tvViewAllBestSellers = view.findViewById(R.id.tvViewAllBestSellers);
+
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
+        }
 
         // Setup RecyclerViews
         setupCategoryRecyclerView();
@@ -89,9 +103,12 @@ public class HomeFragment extends Fragment {
         return view;
     }
 
+    // Badge updates handled by MainActivity
+
     @Override
     public void onResume() {
         super.onResume();
+        startNotificationBadgeListener();
         Log.d(TAG, "🔄 HomeFragment onResume - isFirstLoad: " + isFirstLoad);
 
         // Nếu không phải lần đầu load, reload data (quay lại từ ProductListFragment)
@@ -100,6 +117,51 @@ public class HomeFragment extends Fragment {
             reloadData();
         }
         isFirstLoad = false;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     /**

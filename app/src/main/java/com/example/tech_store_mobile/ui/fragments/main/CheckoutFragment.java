@@ -40,6 +40,8 @@ import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.MainNavigationHelper;
 import com.example.tech_store_mobile.utils.StripeConfig;
 import com.example.tech_store_mobile.utils.StripePaymentApiClient;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
 import androidx.appcompat.widget.AppCompatButton;
@@ -93,6 +95,8 @@ public class CheckoutFragment extends Fragment {
     private String currentUserPhoneNumber;
     private Address selectedAddress;
     private PaymentMethod selectedPaymentMethod;
+    private NotificationBadgeManager.BadgeListener badgeListener;
+    private TextView notificationBadgeView;
     private ArrayList<String> selectedCartDocIds = new ArrayList<>();
 
     public static CheckoutFragment newInstance(double subtotal, double vat, double shipping, double total, ArrayList<String> selectedCartDocIds) {
@@ -353,8 +357,11 @@ public class CheckoutFragment extends Fragment {
         ImageView btnBack = view.findViewById(R.id.btn_back_checkout);
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
 
-        ImageView btnNotification = view.findViewById(R.id.btn_notification_checkout);
-        btnNotification.setOnClickListener(v -> Toast.makeText(requireContext(), R.string.checkout_notifications_toast, Toast.LENGTH_SHORT).show());
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
+        }
 
         btnChangeAddress.setOnClickListener(v -> replaceFragment(new AddressFragment()));
 
@@ -392,6 +399,57 @@ public class CheckoutFragment extends Fragment {
         }
 
         renderPaymentDetails();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        startNotificationBadgeListener();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private String safeText(String value, String fallback) {
@@ -749,10 +807,3 @@ public class CheckoutFragment extends Fragment {
         transaction.commit();
     }
 }
-
-
-
-
-
-
-

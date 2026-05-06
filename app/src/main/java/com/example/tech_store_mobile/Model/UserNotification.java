@@ -5,6 +5,7 @@ import com.google.firebase.Timestamp;
 public class UserNotification {
     private String notificationId;
     private String userId;
+    private String orderId; // optional: link to orders.orderId
     private String title;
     private String content;
     private String type;
@@ -18,6 +19,19 @@ public class UserNotification {
                             String type, Boolean isRead, Timestamp createdAt) {
         this.notificationId = notificationId;
         this.userId = userId;
+        this.title = title;
+        this.content = content;
+        this.type = type;
+        this.isRead = isRead;
+        this.createdAt = createdAt;
+    }
+
+    // Overloaded constructor including optional orderId
+    public UserNotification(String notificationId, String userId, String orderId, String title, String content,
+                            String type, Boolean isRead, Timestamp createdAt) {
+        this.notificationId = notificationId;
+        this.userId = userId;
+        this.orderId = orderId;
         this.title = title;
         this.content = content;
         this.type = type;
@@ -39,6 +53,14 @@ public class UserNotification {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public String getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(String orderId) {
+        this.orderId = orderId;
     }
 
     public String getTitle() {

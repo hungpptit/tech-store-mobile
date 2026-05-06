@@ -168,16 +168,31 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 - `failureReason`: `string`
 - `note`: `string`
 
-## 10) notifications
-**Muc dich:** Gui va luu thong bao den user.
+## 10) notifications (Personal & Target)
+**Muc dich:** Luu thong bao ca nhan (vd: trang thai don hang, nhac nho thanh toan). Moi document la 1 thong bao cho 1 user duy nhat.
 
 **Fields:**
 - `notificationId`: `string`
-- `userId`: `string`
+- `userId`: `string` - UID nguoi nhan
+- `orderId`: `string` - (Optional) lien ket den don hang de bam vao xem chi tiet
 - `title`: `string`
 - `content`: `string`
-- `type`: `string` (`Promotion` | `Order` | `System`)
+- `type`: `string` (`Order` | `System` | `Personal`)
 - `isRead`: `boolean`
+- `createdAt`: `timestamp`
+
+## 10.1) global_announcements (Admin Broadcast)
+**Muc dich:** Admin soan 1 lan va gui cho toan bo nguoi dung (Khuyen mai, bao tri). User Android se doc song song bang nay va bang notifications.
+
+**Fields:**
+- `announcementId`: `string`
+- `adminId`: `string` - UID cua Admin tao
+- `title`: `string`
+- `content`: `string`
+- `imageUrl`: `string` - (Optional) anh banner khuyen mai
+- `type`: `string` (`Promotion` | `System`) - (Optional) loai thong bao
+- `targetGroup`: `string` (`All` | `Member` | `VIP`) - (Optional) nhom nguoi nhan
+- `scheduledAt`: `timestamp` - thoi gian hen gio gui
 - `createdAt`: `timestamp`
 
 ## 11) reviews

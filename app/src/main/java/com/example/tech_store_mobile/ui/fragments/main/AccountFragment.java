@@ -17,12 +17,16 @@ import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
 import com.example.tech_store_mobile.utils.MainNavigationHelper;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.android.material.button.MaterialButton;
 
 public class AccountFragment extends Fragment {
 
     private View accountContentContainer;
     private View accountGuestState;
+    private TextView notificationBadgeView;
+    private NotificationBadgeManager.BadgeListener badgeListener;
 
     public AccountFragment() {
         // Required empty public constructor
@@ -45,6 +49,13 @@ public class AccountFragment extends Fragment {
 
         if (btnBack != null) {
             btnBack.setOnClickListener(v -> navigateBack());
+        }
+
+        // Setup notification button
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
         }
 
         if (btnAccountSignIn != null) {
@@ -106,6 +117,13 @@ public class AccountFragment extends Fragment {
     public void onResume() {
         super.onResume();
         renderAuthState();
+        startNotificationBadgeListener();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
     }
 
     private void setupMenuItem(View itemView, String title, int iconRes) {
@@ -126,23 +144,51 @@ public class AccountFragment extends Fragment {
             return;
         }
 
-        // 1. Tìm các View ở Activity
         View container = requireActivity().findViewById(R.id.fragment_container);
         View viewPager = requireActivity().findViewById(R.id.view_pager);
-        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation); // Thêm dòng này
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
 
         if (container != null && viewPager != null && bottomNav != null) {
-            // 2. Hiện container, ẩn ViewPager và ẩn Bottom Navigation
             container.setVisibility(View.VISIBLE);
             viewPager.setVisibility(View.GONE);
             bottomNav.setVisibility(View.GONE);
         }
 
-        // 3. Chuyển Fragment
         FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);
         transaction.addToBackStack(null);
         transaction.commit();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void renderAuthState() {

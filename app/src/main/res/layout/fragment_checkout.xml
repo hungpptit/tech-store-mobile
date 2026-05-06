@@ -45,19 +45,19 @@
                     android:layout_marginStart="48dp"
                     android:layout_marginEnd="48dp"
                     android:layout_toEndOf="@id/btn_back_checkout"
-                    android:layout_toStartOf="@id/btn_notification_checkout"
+                    android:layout_toStartOf="@id/btn_notification"
                     android:text="@string/checkout_title"
                     android:textColor="@android:color/black"
                     android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <ImageView
-                    android:id="@+id/btn_notification_checkout"
+                    android:id="@+id/btn_notification"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:contentDescription="@string/checkout_notification_content_description"
+                    android:contentDescription="@string/notifications"
                     android:src="@drawable/notification" />
             </RelativeLayout>
 
