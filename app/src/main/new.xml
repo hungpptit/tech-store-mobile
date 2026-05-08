@@ -1,0 +1,12 @@
+<!-- Đoạn mã đã cập nhật trong fragment_my_details.xml -->
+<EditText
+    android:id="@+id/et_full_name"
+    ...
+    android:hint="Enter your name"
+    android:textColor="#000000" />
+
+<EditText
+    android:id="@+id/et_phone"
+    ...
+    android:hint="Phone number"
+    android:textColor="#000000" />
