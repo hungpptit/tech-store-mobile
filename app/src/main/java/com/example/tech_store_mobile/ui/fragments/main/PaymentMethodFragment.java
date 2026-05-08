@@ -20,6 +20,7 @@ import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.PaymentMethodAdapter;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
@@ -59,6 +60,13 @@ public class PaymentMethodFragment extends Fragment {
 
         view.findViewById(R.id.btn_apply_payment).setOnClickListener(v -> handleApplyPayment());
 
+        // Setup notification button
+        android.widget.ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
+        }
+
         return view;
     }
 
@@ -97,6 +105,14 @@ public class PaymentMethodFragment extends Fragment {
 
     private void navigateToNotifications() {
         if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
         NotificationsFragment fragment = new NotificationsFragment();
         getParentFragmentManager()
                 .beginTransaction()

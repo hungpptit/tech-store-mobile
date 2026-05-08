@@ -198,6 +198,14 @@ public class AccountFragment extends Fragment {
 
     private void navigateToNotifications() {
         if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
         NotificationsFragment fragment = new NotificationsFragment();
         getActivity().getSupportFragmentManager()
                 .beginTransaction()

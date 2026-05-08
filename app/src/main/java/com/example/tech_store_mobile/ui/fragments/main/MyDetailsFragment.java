@@ -10,15 +10,20 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
+import android.widget.TextView;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.example.tech_store_mobile.Model.User;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Calendar;
@@ -32,6 +37,8 @@ public class MyDetailsFragment extends Fragment {
     private AppCompatButton btnSubmit;
     private FirebaseFirestore db;
     private String userId;
+    private TextView notificationBadgeView;
+    private NotificationBadgeManager.BadgeListener badgeListener;
 
     private final String[] genders = {"Male", "Female", "Other"};
 
@@ -62,10 +69,16 @@ public class MyDetailsFragment extends Fragment {
         spinnerGender = view.findViewById(R.id.spinner_gender);
         btnSubmit = view.findViewById(R.id.btn_submit_my_details);
 
-        // Khóa ô Email không cho sửa (thường Email là cố định)
+        // Khóa ô Email không cho sửa
         etEmail.setEnabled(false);
 
         view.findViewById(R.id.btn_back_my_details).setOnClickListener(v -> handleBack());
+
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
+        }
     }
 
     private void handleBack() {
@@ -99,16 +112,13 @@ public class MyDetailsFragment extends Fragment {
         int month = c.get(Calendar.MONTH);
         int day = c.get(Calendar.DAY_OF_MONTH);
 
-        // Sử dụng Theme mặc định của hệ thống có hỗ trợ chọn năm nhanh
         DatePickerDialog datePickerDialog = new DatePickerDialog(requireContext(),
                 (view, year1, monthOfYear, dayOfMonth) -> {
                     String selectedDate = String.format("%02d/%02d/%04d", dayOfMonth, (monthOfYear + 1), year1);
                     etDob.setText(selectedDate);
                 }, year, month, day);
 
-        // Dòng quan trọng: Giới hạn ngày chọn không vượt quá ngày hiện tại (nếu là ngày sinh)
         datePickerDialog.getDatePicker().setMaxDate(System.currentTimeMillis());
-
         datePickerDialog.show();
     }
 
@@ -118,7 +128,6 @@ public class MyDetailsFragment extends Fragment {
         db.collection("users").document(userId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (isAdded() && documentSnapshot.exists()) {
-                        // FIX: Lấy Email trực tiếp từ Document nếu Object User bị lỗi
                         String email = documentSnapshot.getString("email");
                         etEmail.setText(safeString(email));
 
@@ -127,7 +136,6 @@ public class MyDetailsFragment extends Fragment {
                             etFullName.setText(safeString(user.getFullName()));
                             etDob.setText(safeString(user.getDateOfBirth()));
 
-                            // Xử lý hiển thị SĐT khi load (cắt 0 để khớp với UI +84)
                             String phoneFromDb = user.getPhoneNumber();
                             if (phoneFromDb != null && phoneFromDb.startsWith("0")) {
                                 etPhone.setText(phoneFromDb.substring(1));
@@ -167,22 +175,9 @@ public class MyDetailsFragment extends Fragment {
             return;
         }
 
-        // LOGIC YÊU CẦU: Cắt số 0 trên UI nhưng giữ cho Server
-        String phoneForServer = inputPhone;
-
-        if (inputPhone.startsWith("0")) {
-            // Cập nhật UI: Biến mất số 0
-            etPhone.setText(inputPhone.substring(1));
-            // Giữ nguyên bản gốc (có số 0) để gửi lên Server
-            phoneForServer = inputPhone;
-        } else {
-            // Nếu người dùng nhập không có số 0 (ví dụ 585...), Server vẫn cần có 0 ở đầu
-            phoneForServer = "0" + inputPhone;
-        }
-
-        // Validate: Sau khi bỏ 0 phải còn 9 số (hoặc check tổng chiều dài)
+        String phoneForServer = inputPhone.startsWith("0") ? inputPhone : "0" + inputPhone;
         if (inputPhone.replace("0", "").length() < 8) {
-            etPhone.setError("Invalid phone number length");
+            etPhone.setError("Invalid phone number");
             return;
         }
 
@@ -190,7 +185,7 @@ public class MyDetailsFragment extends Fragment {
         updates.put("fullName", fullName);
         updates.put("dateOfBirth", dob);
         updates.put("gender", gender);
-        updates.put("phoneNumber", phoneForServer); // Lưu vào Server bản có số 0
+        updates.put("phoneNumber", phoneForServer);
 
         btnSubmit.setEnabled(false);
         btnSubmit.setText("Updating...");
@@ -210,5 +205,56 @@ public class MyDetailsFragment extends Fragment {
                         btnSubmit.setText("Submit");
                     }
                 });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startNotificationBadgeListener();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 }

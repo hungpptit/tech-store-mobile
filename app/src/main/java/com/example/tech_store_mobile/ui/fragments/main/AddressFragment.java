@@ -5,6 +5,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -18,6 +20,8 @@ import com.example.tech_store_mobile.Model.Address;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.AddressAdapter;
 import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
@@ -34,6 +38,8 @@ public class AddressFragment extends Fragment {
     private AddressAdapter addressAdapter;
     private List<Address> addressList;
     private FirebaseFirestore db;
+    private TextView notificationBadgeView;
+    private NotificationBadgeManager.BadgeListener badgeListener;
 
     @Nullable
     @Override
@@ -50,16 +56,68 @@ public class AddressFragment extends Fragment {
 
         view.findViewById(R.id.btn_back_address).setOnClickListener(v -> requireActivity().onBackPressed());
 
-        // Xử lý khi bấm vào nút Add New Address
-        view.findViewById(R.id.btn_add_new_address).setOnClickListener(v -> {
-            replaceFragment(new AddAddressFragment());
-        });
+        view.findViewById(R.id.btn_add_new_address).setOnClickListener(v -> replaceFragment(new AddAddressFragment()));
         
-        view.findViewById(R.id.btn_apply_address).setOnClickListener(v -> {
-            handleApplyAddress();
-        });
+        view.findViewById(R.id.btn_apply_address).setOnClickListener(v -> handleApplyAddress());
+
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
+        }
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startNotificationBadgeListener();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void setupRecyclerView() {
@@ -97,7 +155,6 @@ public class AddressFragment extends Fragment {
             return;
         }
 
-        // Nếu đã là mặc định thì không cần cập nhật DB
         if (Boolean.TRUE.equals(selectedAddress.getIsDefault())) {
             requireActivity().onBackPressed();
             return;
@@ -116,15 +173,12 @@ public class AddressFragment extends Fragment {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     WriteBatch batch = db.batch();
 
-                    // 1. Tắt mặc định cũ
                     for (com.google.firebase.firestore.DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
                         batch.update(doc.getReference(), "isDefault", false);
                     }
 
-                    // 2. Bật mặc định mới
                     batch.update(db.collection("addresses").document(selectedAddress.getAddressId()), "isDefault", true);
 
-                    // 3. Cập nhật User Profile
                     Map<String, Object> userUpdate = new HashMap<>();
                     userUpdate.put("defaultAddressId", selectedAddress.getAddressId());
                     batch.set(db.collection("users").document(userId), userUpdate, SetOptions.merge());
