@@ -24,6 +24,8 @@ import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.ReviewAdapter;
 import com.example.tech_store_mobile.utils.RatingFormatUtil;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
@@ -63,6 +65,8 @@ public class ReviewFragment extends Fragment {
     private final List<Review> reviewList = new ArrayList<>();
     private ReviewAdapter reviewAdapter;
     private int selectedFilterPosition = 0;
+    private TextView notificationBadgeView;
+    private NotificationBadgeManager.BadgeListener badgeListener;
 
     public ReviewFragment() {
     }
@@ -128,6 +132,58 @@ public class ReviewFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        startNotificationBadgeListener();
+        hideBottomNavigation();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
     private void initializeViews(View view) {
         btnBack = view.findViewById(R.id.btnBack);
         tvTitle = view.findViewById(R.id.tvTitle);
@@ -137,6 +193,13 @@ public class ReviewFragment extends Fragment {
         spnReviewFilter = view.findViewById(R.id.spnReviewFilter);
         rvReviews = view.findViewById(R.id.rvReviews);
         llRatingBreakdown = view.findViewById(R.id.llRatingBreakdown);
+
+        // Setup notification button
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        if (btnNotification != null) {
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
+        }
 
         // Set title
         tvTitle.setText(R.string.reviews_title);
@@ -327,13 +390,6 @@ public class ReviewFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        hideBottomNavigation();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
         hideBottomNavigation();
     }
 

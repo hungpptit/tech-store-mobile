@@ -20,6 +20,8 @@ import com.example.tech_store_mobile.adapters.ProductAdapter;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.example.tech_store_mobile.utils.AuthUiHelper;
 import com.example.tech_store_mobile.utils.MainNavigationHelper;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -41,6 +43,8 @@ public class SavedFragment extends Fragment {
     private FirebaseFirestore db;
     private final Set<String> loadedProductIds = new HashSet<>();
     private int savedLoadGeneration = 0;
+    private TextView notificationBadgeView;
+    private NotificationBadgeManager.BadgeListener badgeListener;
 
     public SavedFragment() {
     }
@@ -64,11 +68,57 @@ public class SavedFragment extends Fragment {
     public void onResume() {
         super.onResume();
         renderAuthState();
+        startNotificationBadgeListener();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        View viewPager = requireActivity().findViewById(R.id.view_pager);
+        View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+
+        if (viewPager != null) viewPager.setVisibility(View.GONE);
+        if (fragmentContainer != null) fragmentContainer.setVisibility(View.VISIBLE);
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
+
+        NotificationsFragment fragment = new NotificationsFragment();
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void initializeViews(View view) {
         btnBack = view.findViewById(R.id.btnBack);
-        ImageView btnNotification = view.findViewById(R.id.btnNotification);
+        ImageView btnNotification = view.findViewById(R.id.btn_notification);
         TextView tvTitle = view.findViewById(R.id.tvTitle);
         rvSaved = view.findViewById(R.id.rvSaved);
         guestStateContainer = view.findViewById(R.id.guestStateContainer);
@@ -78,6 +128,8 @@ public class SavedFragment extends Fragment {
         tvTitle.setText(R.string.saved_title);
         if (btnNotification != null) {
             btnNotification.setVisibility(View.VISIBLE);
+            notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
+            btnNotification.setOnClickListener(v -> navigateToNotifications());
         }
     }
 

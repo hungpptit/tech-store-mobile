@@ -55,10 +55,11 @@
 
                     <ImageView
                         android:id="@+id/btn_notification"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_alignParentEnd="true"
                         android:layout_centerVertical="true"
+                        android:contentDescription="@string/notifications"
                         android:src="@drawable/notification"
                         /> </RelativeLayout>
 

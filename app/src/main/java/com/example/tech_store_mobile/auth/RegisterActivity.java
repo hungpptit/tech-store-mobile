@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.tech_store_mobile.MainActivity;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.FcmTokenSyncHelper;
 import com.example.tech_store_mobile.utils.UserProfileSyncHelper;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -201,6 +202,7 @@ public class RegisterActivity extends AppCompatActivity {
                                     new UserProfileSyncHelper.SyncCallback() {
                                         @Override
                                         public void onSuccess() {
+                                            FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                                             Toast.makeText(RegisterActivity.this, "Account created successfully!", Toast.LENGTH_SHORT).show();
                                             Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -210,6 +212,7 @@ public class RegisterActivity extends AppCompatActivity {
 
                                         @Override
                                         public void onFailure(Exception exception) {
+                                            FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                                             Toast.makeText(RegisterActivity.this, "Saved auth account, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
                                             Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -219,6 +222,7 @@ public class RegisterActivity extends AppCompatActivity {
                                     }
                             );
                         } else {
+                                    FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                             Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
                             Intent intent = new Intent(this, MainActivity.class);
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -311,6 +315,7 @@ public class RegisterActivity extends AppCompatActivity {
                                 new UserProfileSyncHelper.SyncCallback() {
                                     @Override
                                     public void onSuccess() {
+                                        FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                                         Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                         startActivity(intent);
@@ -319,6 +324,7 @@ public class RegisterActivity extends AppCompatActivity {
 
                                     @Override
                                     public void onFailure(Exception exception) {
+                                        FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                                         Toast.makeText(RegisterActivity.this, "Saved Google sign-in, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
                                         Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

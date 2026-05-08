@@ -47,9 +47,12 @@
                 android:textStyle="bold"
                 tools:ignore="RelativeOverlap,TextViewOverlap,TextViewEdits" />
 
-            <Space
+            <ImageView
+                android:id="@+id/btn_notification"
                 android:layout_width="24dp"
-                android:layout_height="24dp" />
+                android:layout_height="24dp"
+                android:contentDescription="@string/notifications"
+                android:src="@drawable/notification" />
         </LinearLayout>
 
         <LinearLayout

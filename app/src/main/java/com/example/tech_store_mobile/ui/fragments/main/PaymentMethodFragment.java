@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -18,6 +19,7 @@ import com.example.tech_store_mobile.Model.PaymentMethod;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.PaymentMethodAdapter;
 import com.example.tech_store_mobile.utils.AuthManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
@@ -34,6 +36,8 @@ public class PaymentMethodFragment extends Fragment {
     private PaymentMethodAdapter paymentAdapter;
     private List<PaymentMethod> paymentList;
     private FirebaseFirestore db;
+    private TextView notificationBadgeView;
+    private NotificationBadgeManager.BadgeListener badgeListener;
 
     @Nullable
     @Override
@@ -56,6 +60,49 @@ public class PaymentMethodFragment extends Fragment {
         view.findViewById(R.id.btn_apply_payment).setOnClickListener(v -> handleApplyPayment());
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startNotificationBadgeListener();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopNotificationBadgeListener();
+    }
+
+    private void startNotificationBadgeListener() {
+        badgeListener = unreadCount -> {
+            if (notificationBadgeView == null) return;
+            if (unreadCount <= 0) {
+                notificationBadgeView.setVisibility(View.GONE);
+            } else {
+                notificationBadgeView.setVisibility(View.VISIBLE);
+                notificationBadgeView.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount));
+            }
+        };
+        NotificationBadgeManager.getInstance().addListener(badgeListener);
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    private void stopNotificationBadgeListener() {
+        if (badgeListener != null) {
+            NotificationBadgeManager.getInstance().removeListener(badgeListener);
+        }
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void navigateToNotifications() {
+        if (!isAdded() || getActivity() == null) return;
+        NotificationsFragment fragment = new NotificationsFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void setupRecyclerView() {

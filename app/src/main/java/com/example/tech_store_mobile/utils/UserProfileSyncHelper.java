@@ -22,7 +22,7 @@ public class UserProfileSyncHelper {
     public static void syncEmailPasswordUserProfile(String uid, String fullName, String email, SyncCallback callback) {
         syncCompleteUserProfile(
                 uid,
-                new User(uid, safeValue(fullName), safeValue(email), "", "", "", "", "", "", Timestamp.now()),
+                new User(uid, "user", safeValue(fullName), safeValue(email), "", "", "", "", "", "", "", Timestamp.now()),
                 callback
         );
     }
@@ -30,7 +30,7 @@ public class UserProfileSyncHelper {
     public static void syncGoogleUserProfile(String uid, String displayName, String email, String avatarUrl, SyncCallback callback) {
         syncCompleteUserProfile(
                 uid,
-                new User(uid, normalizeDisplayName(displayName, email), safeValue(email), "", "", "", safeValue(avatarUrl), "", "", Timestamp.now()),
+                new User(uid, "user", normalizeDisplayName(displayName, email), safeValue(email), "", "", "", safeValue(avatarUrl), "", "", "", Timestamp.now()),
                 callback
         );
     }
@@ -42,6 +42,7 @@ public class UserProfileSyncHelper {
                 .addOnSuccessListener(snapshot -> {
                     Map<String, Object> userData = new HashMap<>();
                     userData.put("userId", safeValue(authUser.getUserId()));
+                    userData.put("role", pickString(snapshot.getString("role"), authUser.getRole()));
                     userData.put("fullName", pickString(snapshot.getString("fullName"), authUser.getFullName()));
                     userData.put("email", pickString(snapshot.getString("email"), authUser.getEmail()));
                     userData.put("phoneNumber", pickString(snapshot.getString("phoneNumber"), authUser.getPhoneNumber()));
@@ -68,27 +69,27 @@ public class UserProfileSyncHelper {
     }
 
     private static String normalizeDisplayName(String displayName, String email) {
-        if (displayName != null && !displayName.trim().isEmpty()) {
+        if (hasText(displayName)) {
             return displayName.trim();
         }
 
-        if (email != null && email.contains("@")) {
+        if (hasText(email) && email.contains("@")) {
             return email.substring(0, email.indexOf('@')).trim();
         }
 
         return "";
     }
 
-    private static boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
+    private static boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 
     private static String pickString(String existingValue, String fallbackValue) {
-        if (!isBlank(existingValue)) {
+        if (hasText(existingValue)) {
             return existingValue.trim();
         }
 
-        if (!isBlank(fallbackValue)) {
+        if (hasText(fallbackValue)) {
             return fallbackValue.trim();
         }
 

@@ -13,7 +13,12 @@ import androidx.viewpager.widget.ViewPager;
 import com.example.tech_store_mobile.adapters.ViewpagerAdapter;
 import com.example.tech_store_mobile.ui.fragments.main.HomeFragment;
 import com.example.tech_store_mobile.utils.FirebaseConfig;
+import com.example.tech_store_mobile.utils.FcmTokenSyncHelper;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.example.tech_store_mobile.utils.NotificationBadgeManager;
+import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -29,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 🔥 Cấu hình Firebase
         FirebaseConfig.configureFirestore();
+        FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
 
         // 🔥 Khởi tạo Firebase data lần đầu tiên
         // DISABLED: Bạn đã có data rồi, không cần auto-create
@@ -117,6 +123,47 @@ public class MainActivity extends AppCompatActivity {
                 handleBackPress();
             }
         });
+
+        // Start central notification badge manager and update UI across fragments
+        NotificationBadgeManager.getInstance().addListener(unreadCount -> {
+            Log.d(TAG, "Badge count changed: " + unreadCount);
+            // Update badges
+            updateBadgesForAllFragments(unreadCount);
+        });
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // ensure manager is running (in case onCreate didn't start)
+        NotificationBadgeManager.getInstance().start();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        NotificationBadgeManager.getInstance().removeListener(this::updateBadgesForAllFragments);
+        NotificationBadgeManager.getInstance().stop();
+    }
+
+    private void updateBadgesForAllFragments(int unreadCount) {
+        // All notification buttons are now standardized to use btn_notification ID
+        int[] possibleIds = new int[] {
+                R.id.btn_notification
+        };
+
+        for (int id : possibleIds) {
+            View found = findViewById(id);
+            if (found instanceof ImageView) {
+                ImageView img = (ImageView) found;
+                TextView badge = NotificationBadgeUtils.attachBadgeToImageView(img, this);
+                if (badge != null) {
+                    if (unreadCount <= 0) badge.setVisibility(TextView.GONE);
+                    else { badge.setVisibility(TextView.VISIBLE); badge.setText(unreadCount > 99 ? "99+" : String.valueOf(unreadCount)); }
+                }
+            }
+        }
     }
 
     // Handle back press logic
