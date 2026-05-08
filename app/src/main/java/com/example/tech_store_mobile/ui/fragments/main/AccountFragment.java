@@ -6,6 +6,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -65,8 +66,15 @@ public class AccountFragment extends Fragment {
         // 1. My Orders
         setupMenuItem(view.findViewById(R.id.item_my_orders), "My Orders", R.drawable.box);
 
-        // 2. My Details
-        setupMenuItem(view.findViewById(R.id.item_my_details), "My Details", R.drawable.details);
+        // 2. My Details - FIX CLICK HERE
+        View detailsView = view.findViewById(R.id.item_my_details);
+        setupMenuItem(detailsView, "My Details", R.drawable.details);
+        if (detailsView != null) {
+            detailsView.setOnClickListener(v -> {
+                Log.d("AccountFragment", "My Details clicked");
+                replaceFragment(new MyDetailsFragment());
+            });
+        }
 
         // 3. Address Book
         View addressView = view.findViewById(R.id.item_address_book);
@@ -78,7 +86,9 @@ public class AccountFragment extends Fragment {
         // 4. Payment Methods
         View paymentView = view.findViewById(R.id.item_payment_methods);
         setupMenuItem(paymentView, "Payment Methods", R.drawable.card_1_black);
-        paymentView.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
+        if (paymentView != null) {
+            paymentView.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
+        }
 
         // 5. Help Center
         View helpCenterView = view.findViewById(R.id.item_help_center);
@@ -144,17 +154,22 @@ public class AccountFragment extends Fragment {
             return;
         }
 
-        View container = requireActivity().findViewById(R.id.fragment_container);
-        View viewPager = requireActivity().findViewById(R.id.view_pager);
-        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
+        View container = getActivity().findViewById(R.id.fragment_container);
+        View viewPager = getActivity().findViewById(R.id.view_pager);
+        View bottomNav = getActivity().findViewById(R.id.bottom_navigation);
 
-        if (container != null && viewPager != null && bottomNav != null) {
+        if (container != null) {
             container.setVisibility(View.VISIBLE);
+        }
+        if (viewPager != null) {
             viewPager.setVisibility(View.GONE);
+        }
+        if (bottomNav != null) {
             bottomNav.setVisibility(View.GONE);
         }
 
-        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        // Sử dụng Manager của Activity để replace container chính
+        FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);
         transaction.addToBackStack(null);
         transaction.commit();
@@ -184,7 +199,7 @@ public class AccountFragment extends Fragment {
     private void navigateToNotifications() {
         if (!isAdded() || getActivity() == null) return;
         NotificationsFragment fragment = new NotificationsFragment();
-        getParentFragmentManager()
+        getActivity().getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.fragment_container, fragment)
                 .addToBackStack(null)
