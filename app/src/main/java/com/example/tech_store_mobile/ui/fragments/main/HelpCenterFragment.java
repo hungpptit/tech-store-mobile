@@ -37,9 +37,6 @@ public class HelpCenterFragment extends Fragment {
             btnNotification.setOnClickListener(v -> navigateToNotifications());
         }
 
-        view.findViewById(R.id.btn_help_floating)
-                .setOnClickListener(v -> showComingSoon());
-
         bindHelpCard(view.findViewById(R.id.item_customer_service), R.drawable.headphones, R.string.help_center_customer_service,
                 true);
         bindHelpCard(view.findViewById(R.id.item_website), R.drawable.search_home, R.string.help_center_website);
@@ -121,6 +118,13 @@ public class HelpCenterFragment extends Fragment {
         cardView.setOnClickListener(v -> {
             if (openChat) {
                 replaceFragment(new CustomerServiceFragment());
+            } else if (titleRes == R.string.help_center_facebook) {
+                try {
+                    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.facebook.com/tuanhung.pham.9678"));
+                    startActivity(intent);
+                } catch (Exception e) {
+                    showComingSoon();
+                }
             } else {
                 showComingSoon();
             }
