@@ -6,28 +6,26 @@
     android:background="#FFFFFF"
     android:orientation="vertical">
 
-    <!-- Header đồng bộ với Account -->
-    <LinearLayout
+    <!-- Header -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_marginTop="30dp"
         android:layout_marginBottom="20dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:paddingHorizontal="16dp">
 
         <ImageView
             android:id="@+id/btn_back_orders"
             android:layout_width="24dp"
             android:layout_height="24dp"
+            android:layout_centerVertical="true"
             android:src="@drawable/vector"
             android:contentDescription="@string/back" />
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
+            android:layout_centerInParent="true"
             android:text="My Orders"
             android:textColor="@android:color/black"
             android:textSize="20sp"
@@ -37,8 +35,10 @@
             android:id="@+id/btn_notification_orders"
             android:layout_width="24dp"
             android:layout_height="24dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
             android:src="@drawable/notification" />
-    </LinearLayout>
+    </RelativeLayout>
 
     <!-- Toggle Tabs -->
     <com.google.android.material.tabs.TabLayout

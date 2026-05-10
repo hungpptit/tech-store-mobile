@@ -23,15 +23,16 @@ import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.OrderAdapter;
 import com.example.tech_store_mobile.utils.AuthManager;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class OrdersListFragment extends Fragment implements OrderAdapter.OnOrderActionListener {
 
+    private static final String TAG = "OrdersListFragment";
     private static final String ARG_IS_ONGOING = "is_ongoing";
+    
     private boolean isOngoing;
     private RecyclerView rvOrders;
     private ProgressBar progressBar;
@@ -85,52 +86,77 @@ public class OrdersListFragment extends Fragment implements OrderAdapter.OnOrder
     }
 
     private void loadOrders() {
-        String userId = AuthManager.getCurrentUid();
-        if (userId == null) return;
+        String currentUserId = AuthManager.getCurrentUid();
+        if (currentUserId == null) {
+            showEmptyState();
+            return;
+        }
 
         progressBar.setVisibility(View.VISIBLE);
         
-        List<String> ongoingStatuses = Arrays.asList("Packing", "Picked", "In Transit", "Shipping");
-        List<String> completedStatuses = Arrays.asList("Delivered", "Completed", "Cancelled");
-
-        Query query = db.collection("orders")
-                .whereEqualTo("userId", userId)
-                .orderBy("orderDate", Query.Direction.DESCENDING);
-
-        if (isOngoing) {
-            query = query.whereIn("status", ongoingStatuses);
-        } else {
-            query = query.whereIn("status", completedStatuses);
-        }
-
-        query.get().addOnSuccessListener(queryDocumentSnapshots -> {
-            progressBar.setVisibility(View.GONE);
-            displayList.clear();
-            
-            List<Order> rawOrders = queryDocumentSnapshots.toObjects(Order.class);
-            for (Order order : rawOrders) {
-                if (order.getItems() != null) {
-                    for (OrderItem item : order.getItems()) {
-                        // Thêm từng sản phẩm vào danh sách hiển thị riêng biệt
-                        displayList.add(new OrderAdapter.DisplayItem(order, item));
+        // Hướng giải quyết: Tải tất cả và lọc thủ công để tránh lỗi Index và khớp chính xác userId
+        db.collection("orders")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!isAdded()) return;
+                    progressBar.setVisibility(View.GONE);
+                    displayList.clear();
+                    
+                    List<Order> filteredOrders = new ArrayList<>();
+                    
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Order order = document.toObject(Order.class);
+                        
+                        // Bước 1: Kiểm tra userId trùng khớp
+                        if (currentUserId.equals(order.getUserId())) {
+                            filteredOrders.add(order);
+                        }
                     }
-                }
-            }
-            
-            adapter.notifyDataSetChanged();
 
-            if (displayList.isEmpty()) {
-                updateEmptyStateUI();
-                emptyState.setVisibility(View.VISIBLE);
-                rvOrders.setVisibility(View.GONE);
-            } else {
-                emptyState.setVisibility(View.GONE);
-                rvOrders.setVisibility(View.VISIBLE);
-            }
-        }).addOnFailureListener(e -> {
-            progressBar.setVisibility(View.GONE);
-            Log.e("OrdersListFragment", "Error loading orders", e);
-        });
+                    // Sắp xếp đơn hàng theo thời gian mới nhất (giảm dần)
+                    filteredOrders.sort((o1, o2) -> {
+                        if (o1.getOrderDate() == null || o2.getOrderDate() == null) return 0;
+                        return o2.getOrderDate().compareTo(o1.getOrderDate());
+                    });
+
+                    // Bước 2: Phân loại theo field 'status' của Order
+                    for (Order order : filteredOrders) {
+                        String statusValue = order.getStatus() != null ? order.getStatus().trim() : "";
+                        
+
+                        boolean isCompleted = statusValue.equalsIgnoreCase("Delivered");
+
+                        boolean shouldInclude = (isOngoing && !isCompleted) || (!isOngoing && isCompleted);
+
+                        if (shouldInclude && order.getItems() != null) {
+                            for (OrderItem item : order.getItems()) {
+                                // "Phẳng hóa": Mỗi item hiển thị 1 thẻ, lấy status của order cha để hiện lên badge
+                                displayList.add(new OrderAdapter.DisplayItem(order, item));
+                            }
+                        }
+                    }
+                    
+                    adapter.notifyDataSetChanged();
+
+                    if (displayList.isEmpty()) {
+                        showEmptyState();
+                    } else {
+                        emptyState.setVisibility(View.GONE);
+                        rvOrders.setVisibility(View.VISIBLE);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (!isAdded()) return;
+                    progressBar.setVisibility(View.GONE);
+                    Log.e(TAG, "Lỗi tải đơn hàng: " + e.getMessage());
+                    showEmptyState();
+                });
+    }
+
+    private void showEmptyState() {
+        updateEmptyStateUI();
+        emptyState.setVisibility(View.VISIBLE);
+        rvOrders.setVisibility(View.GONE);
     }
 
     private void updateEmptyStateUI() {
@@ -163,7 +189,6 @@ public class OrdersListFragment extends Fragment implements OrderAdapter.OnOrder
     }
 
     private void replaceFragment(Fragment fragment) {
-        // Sử dụng fragment_container chính của Activity để đè lên ViewPager
         FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);
         transaction.addToBackStack(null);
