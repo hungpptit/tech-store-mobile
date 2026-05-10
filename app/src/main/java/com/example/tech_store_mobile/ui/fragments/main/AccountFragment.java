@@ -52,7 +52,11 @@ public class AccountFragment extends Fragment {
         }
 
         // 1. My Orders
-        setupMenuItem(view.findViewById(R.id.item_my_orders), "My Orders", R.drawable.box);
+        View myOrdersView = view.findViewById(R.id.item_my_orders);
+        setupMenuItem(myOrdersView, "My Orders", R.drawable.box);
+        if (myOrdersView != null) {
+            myOrdersView.setOnClickListener(v -> replaceFragment(new MyOrdersFragment()));
+        }
 
         // 2. My Details
         setupMenuItem(view.findViewById(R.id.item_my_details), "My Details", R.drawable.details);
@@ -67,7 +71,9 @@ public class AccountFragment extends Fragment {
         // 4. Payment Methods
         View paymentView = view.findViewById(R.id.item_payment_methods);
         setupMenuItem(paymentView, "Payment Methods", R.drawable.card_1_black);
-        paymentView.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
+        if (paymentView != null) {
+            paymentView.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
+        }
 
         // 5. Help Center
         View helpCenterView = view.findViewById(R.id.item_help_center);
@@ -129,7 +135,7 @@ public class AccountFragment extends Fragment {
         // 1. Tìm các View ở Activity
         View container = requireActivity().findViewById(R.id.fragment_container);
         View viewPager = requireActivity().findViewById(R.id.view_pager);
-        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation); // Thêm dòng này
+        View bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
 
         if (container != null && viewPager != null && bottomNav != null) {
             // 2. Hiện container, ẩn ViewPager và ẩn Bottom Navigation
