@@ -64,7 +64,11 @@ public class AccountFragment extends Fragment {
         }
 
         // 1. My Orders
-        setupMenuItem(view.findViewById(R.id.item_my_orders), "My Orders", R.drawable.box);
+        View myOrdersView = view.findViewById(R.id.item_my_orders);
+        setupMenuItem(myOrdersView, "My Orders", R.drawable.box);
+        if (myOrdersView != null) {
+            myOrdersView.setOnClickListener(v -> replaceFragment(new MyOrdersFragment()));
+        }
 
         // 2. My Details - FIX CLICK HERE
         View detailsView = view.findViewById(R.id.item_my_details);
