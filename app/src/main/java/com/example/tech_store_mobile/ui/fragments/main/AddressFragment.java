@@ -60,7 +60,7 @@ public class AddressFragment extends Fragment {
         
         view.findViewById(R.id.btn_apply_address).setOnClickListener(v -> handleApplyAddress());
 
-        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        ImageView btnNotification = view.findViewById(R.id.btn_notification_address);
         if (btnNotification != null) {
             notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
             btnNotification.setOnClickListener(v -> navigateToNotifications());
