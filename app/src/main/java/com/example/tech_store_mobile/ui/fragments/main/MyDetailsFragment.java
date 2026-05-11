@@ -100,7 +100,7 @@ public class MyDetailsFragment extends Fragment {
 
         view.findViewById(R.id.btn_back_my_details).setOnClickListener(v -> handleBack());
 
-        ImageView btnNotification = view.findViewById(R.id.btn_notification);
+        ImageView btnNotification = view.findViewById(R.id.btn_notification_my_details);
         if (btnNotification != null) {
             notificationBadgeView = NotificationBadgeUtils.attachBadgeToImageView(btnNotification, requireContext());
             btnNotification.setOnClickListener(v -> navigateToNotifications());
