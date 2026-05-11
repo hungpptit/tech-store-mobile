@@ -214,9 +214,16 @@ public class MyDetailsFragment extends Fragment {
             return;
         }
 
-        String phoneForServer = inputPhone.startsWith("0") ? inputPhone : "0" + inputPhone;
-        if (inputPhone.replace("0", "").length() < 8) {
-            etPhone.setError("Invalid phone number");
+        String inputPhone = etPhone.getText().toString().trim(); // Khai báo biến inputPhone
+
+        // Thực hiện các validation cần thiết
+        // Ví dụ: kiểm tra định dạng số điện thoại cơ bản
+        if (inputPhone.isEmpty()) {
+            etPhone.setError("Please enter your phone number");
+            return;
+        }
+
+        // Chuyển trạng thái nút sau khi validate thành công
         btnSubmit.setEnabled(false);
         btnSubmit.setText("Updating...");
 
