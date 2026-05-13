@@ -61,6 +61,8 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         holder.tvProductName.setText(item.getProductName());
         holder.tvProductColor.setText(item.getColor());
         holder.tvPrice.setText(String.format(Locale.US, "$ %.2f", item.getPrice()));
+        
+        // HIỂN THỊ STATUS CỦA ORDER LÊN BADGE (Không phải statusName của tracking)
         holder.tvStatus.setText(order.getStatus());
 
         Glide.with(holder.itemView.getContext())
