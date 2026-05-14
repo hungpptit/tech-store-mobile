@@ -93,8 +93,7 @@ public class OrdersListFragment extends Fragment implements OrderAdapter.OnOrder
         }
 
         progressBar.setVisibility(View.VISIBLE);
-        
-        // Hướng giải quyết: Tải tất cả và lọc thủ công để tránh lỗi Index và khớp chính xác userId
+
         db.collection("orders")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
@@ -122,9 +121,8 @@ public class OrdersListFragment extends Fragment implements OrderAdapter.OnOrder
                     // Bước 2: Phân loại theo field 'status' của Order
                     for (Order order : filteredOrders) {
                         String statusValue = order.getStatus() != null ? order.getStatus().trim() : "";
-                        
 
-                        boolean isCompleted = statusValue.equalsIgnoreCase("Delivered");
+                        boolean isCompleted = statusValue.equalsIgnoreCase("Completed");
 
                         boolean shouldInclude = (isOngoing && !isCompleted) || (!isOngoing && isCompleted);
 
