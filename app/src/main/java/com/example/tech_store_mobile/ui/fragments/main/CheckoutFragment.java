@@ -355,7 +355,7 @@ public class CheckoutFragment extends Fragment {
 
     private void setupListeners(View view) {
         ImageView btnBack = view.findViewById(R.id.btn_back_checkout);
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        btnBack.setOnClickListener(v -> requireActivity().getOnBackPressedDispatcher().onBackPressed());
 
         ImageView btnNotification = view.findViewById(R.id.btn_notification);
         if (btnNotification != null) {

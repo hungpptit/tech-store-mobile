@@ -156,7 +156,7 @@ public class AddressFragment extends Fragment {
         }
 
         if (Boolean.TRUE.equals(selectedAddress.getIsDefault())) {
-            requireActivity().onBackPressed();
+            requireActivity().getOnBackPressedDispatcher().onBackPressed();
             return;
         }
 
@@ -185,7 +185,7 @@ public class AddressFragment extends Fragment {
 
                     batch.commit().addOnSuccessListener(aVoid -> {
                         Toast.makeText(getContext(), "Default address updated to: " + selectedAddress.getNickname(), Toast.LENGTH_SHORT).show();
-                        requireActivity().onBackPressed();
+                        requireActivity().getOnBackPressedDispatcher().onBackPressed();
                     }).addOnFailureListener(e -> {
                         Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });

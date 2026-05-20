@@ -64,14 +64,6 @@
                     android:textColor="#000000"
                     android:textSize="18sp"
                     android:textStyle="bold" />
-
-                <ImageView
-                    android:id="@+id/btn_close_add_address"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_alignParentEnd="true"
-                    android:src="@android:drawable/ic_menu_close_clear_cancel"
-                    app:tint="#000000" />
             </RelativeLayout>
 
             <View
@@ -100,20 +92,78 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="Full Address"
+                android:text="Province / City"
                 android:textColor="#000000"
                 android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/et_full_address"
+            <Spinner
+                android:id="@+id/spinner_province"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginBottom="20dp"
                 android:background="@drawable/bg_button_white"
-                android:hint="Enter your full address..."
+                android:padding="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="District"
+                android:textColor="#000000"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spinner_district"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="20dp"
+                android:background="@drawable/bg_button_white"
+                android:padding="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Ward / Commune"
+                android:textColor="#000000"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spinner_ward"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="20dp"
+                android:background="@drawable/bg_button_white"
+                android:padding="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Detail address"
+                android:textColor="#000000"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/et_address_detail"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="14dp"
+                android:background="@drawable/bg_button_white"
+                android:hint="House number, street name..."
                 android:inputType="textPostalAddress"
                 android:paddingHorizontal="16dp"
                 android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_full_address_preview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:textColor="#666666"
+                android:textSize="13sp"
+                android:textStyle="italic"
+                android:text="Full address preview will appear here" />
 
             <CheckBox
                 android:id="@+id/cb_default_address"

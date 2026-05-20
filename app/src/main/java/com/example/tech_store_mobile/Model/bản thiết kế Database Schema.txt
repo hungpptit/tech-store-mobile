@@ -54,18 +54,31 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 - `isBestSeller`: `boolean`
 - `searchKeywords`: `array<string>` (vd: `["mac", "macbook", "m4"]`)
 
-## 4) addresses
-**Muc dich:** Luu danh sach dia chi giao hang cua user.
+## 4) addresses (new)
+**Muc dich:** Luu danh sach dia chi giao hang cua user với cấu trúc phân cấp để đồng bộ với Vietnam Provinces Open API.
 
 **Fields:**
 - `addressId`: `string`
 - `userId`: `string`
-- `nickname`: `string` (vd: Home, Office, Parent House)
-- `fullAddress`: `string`
+- `nickname`: `string` (vd: Home, Office, Apartment, Parent House)
+- `location`: `map`
+  - `provinceCode`: `string`
+  - `provinceName`: `string`
+  - `districtCode`: `string` *(cần cho luồng chọn Quận/Huyện trong API)*
+  - `districtName`: `string`
+  - `wardCode`: `string`
+  - `wardName`: `string`
+  - `detail`: `string` (Số nhà, tên đường, khu phố)
+  - `fullAddress`: `string` (chuỗi ghép sẵn để render nhanh)
+- `fullAddress`: `string` (fallback/compatibility cho UI cũ)
 - `isDefault`: `boolean`
 
-> Co the trien khai dang sub-collection (`users/{userId}/addresses`) hoac collection rieng.
+**Flow dữ liệu:**
+- Fetch tỉnh/thành: `https://provinces.open-api.vn/api/p/`
+- Khi chọn tỉnh: `https://provinces.open-api.vn/api/p/${P}?depth=2`
+- Khi bấm Add: lưu toàn bộ object `location` vào Firestore để dùng lại ở checkout/profile
 
+> Có thể triển khai collection riêng `addresses` như hiện tại hoặc sub-collection `users/{userId}/addresses`, nhưng app hiện tại đang dùng collection riêng.
 ## 5) payment_methods
 **Muc dich:** Luu phuong thuc thanh toan da luu cua user.
 
