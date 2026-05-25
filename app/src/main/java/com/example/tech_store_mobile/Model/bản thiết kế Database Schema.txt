@@ -264,6 +264,24 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 
 > Ghi chu: voi web admin, co the doc danh sach room tu `rooms`, sau do vao `messages` cua tung room de xem noi dung chat.
 
+## 15) stock_reservations
+**Muc dich:** Luu thong tin giu cho ton kho tam thoi trong 5 phut truoc khi thanh toan de tranh overselling.
+
+**Fields:**
+- `reservationId`: `string` - PK, ID duy nhat tu firestore
+- `userId`: `string` - UID nguoi mua
+- `items`: `array<map>`
+  - `productId`: `string`
+  - `productName`: `string`
+  - `quantity`: `number`
+  - `price`: `number`
+  - `imageUrl`: `string`
+  - `color`: `string`
+- `status`: `string` (`pending` | `completed` | `released`)
+- `createdAt`: `timestamp`
+- `expiresAt`: `timestamp` - thoi diem het han giu cho (createdAt + 5 phut)
+- `releasedAt`: `timestamp` - thoi diem hoan lai kho (neu co)
+
 ---
 
 ## Cong dung tung model (Java)
@@ -285,6 +303,7 @@ Tai lieu nay tong hop schema NoSQL cho ung dung Tech Store, phu hop voi cac man 
 - `UserNotification`: Model thong bao theo user; dung cho inbox thong bao va badge chua doc.
 - `Review`: Noi dung danh gia/sao theo san pham; dung de tinh rating trung binh va hien thi review.
 - `SearchHistory`: Luu lich su tim kiem gan day de de xuat nhanh tren man hinh search.
+- `StockReservation`: Luu phien giu cho ton kho tam thoi (5 phut), chua chi tiet cac san pham va thoi gian het han de phuc vu viec tu dong hoan tra.
 
 ---
 

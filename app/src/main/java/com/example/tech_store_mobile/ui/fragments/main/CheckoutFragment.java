@@ -44,10 +44,16 @@ import com.example.tech_store_mobile.utils.NotificationBadgeManager;
 import com.example.tech_store_mobile.utils.NotificationBadgeUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import androidx.appcompat.widget.AppCompatButton;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,6 +104,7 @@ public class CheckoutFragment extends Fragment {
     private NotificationBadgeManager.BadgeListener badgeListener;
     private TextView notificationBadgeView;
     private ArrayList<String> selectedCartDocIds = new ArrayList<>();
+    private String currentReservationId;
 
     public static CheckoutFragment newInstance(double subtotal, double vat, double shipping, double total, ArrayList<String> selectedCartDocIds) {
         CheckoutFragment fragment = new CheckoutFragment();
@@ -371,7 +378,28 @@ public class CheckoutFragment extends Fragment {
         btnEditCard.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
         btnPlaceOrder.setOnClickListener(v -> {
             if (isCardPaymentSelected) {
-                startStripePaymentFlow();
+                String userId = AuthManager.getCurrentUid();
+                if (userId == null) {
+                    Toast.makeText(requireContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                btnPlaceOrder.setEnabled(false);
+                btnPlaceOrder.setText(R.string.checkout_processing);
+
+                preLoadCheckoutItems(userId, 0, new ArrayList<>(), new OnItemsLoadedListener() {
+                    @Override
+                    public void onLoaded(List<OrderItem> items) {
+                        performStockReservation(userId, items);
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+                        btnPlaceOrder.setEnabled(true);
+                        btnPlaceOrder.setText(R.string.checkout_place_order);
+                        Toast.makeText(requireContext(), "Lỗi tải thông tin sản phẩm: " + error, Toast.LENGTH_SHORT).show();
+                    }
+                });
             } else {
                 Toast.makeText(requireContext(), R.string.checkout_place_order_toast, Toast.LENGTH_SHORT).show();
             }
@@ -799,6 +827,435 @@ public class CheckoutFragment extends Fragment {
         dialog.show();
     }
 
+
+    @Override
+    public void onDestroyView() {
+        if (currentReservationId != null) {
+            releaseReservationImmediately(currentReservationId);
+            currentReservationId = null;
+        }
+        super.onDestroyView();
+    }
+
+    private interface OnItemsLoadedListener {
+        void onLoaded(List<OrderItem> items);
+        void onFailure(String error);
+    }
+
+    private void preLoadCheckoutItems(String userId, int index, List<OrderItem> loadedItems, OnItemsLoadedListener listener) {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (selectedCartDocIds == null || index >= selectedCartDocIds.size()) {
+            listener.onLoaded(loadedItems);
+            return;
+        }
+
+        String cartDocId = selectedCartDocIds.get(index);
+        if (TextUtils.isEmpty(cartDocId)) {
+            preLoadCheckoutItems(userId, index + 1, loadedItems, listener);
+            return;
+        }
+
+        db.collection("carts").document(cartDocId)
+                .get()
+                .addOnSuccessListener(cartSnapshot -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+
+                    String productId = cartSnapshot.getString("productId");
+                    Long quantity = cartSnapshot.getLong("quantity");
+                    String selectedColor = safeText(cartSnapshot.getString("selectedColor"), "");
+                    Double priceAtAdded = cartSnapshot.getDouble("priceAtAdded");
+
+                    if (TextUtils.isEmpty(productId)) {
+                        preLoadCheckoutItems(userId, index + 1, loadedItems, listener);
+                        return;
+                    }
+
+                    db.collection("products").document(productId)
+                            .get()
+                            .addOnSuccessListener(productSnapshot -> {
+                                if (!isAdded()) {
+                                    return;
+                                }
+
+                                String productName = safeText(productSnapshot.getString("productName"), productId);
+                                String imageUrl = productSnapshot.getString("imageUrl");
+                                Double price = priceAtAdded != null ? priceAtAdded : productSnapshot.getDouble("finalPrice");
+
+                                loadedItems.add(new OrderItem(
+                                        productId,
+                                        productName,
+                                        quantity != null ? quantity : 1L,
+                                        price != null ? price : 0.0,
+                                        imageUrl,
+                                        selectedColor
+                                ));
+
+                                preLoadCheckoutItems(userId, index + 1, loadedItems, listener);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.w(TAG, "Failed to load product for order item", e);
+                                loadedItems.add(new OrderItem(
+                                        productId,
+                                        productId,
+                                        quantity != null ? quantity : 1L,
+                                        priceAtAdded != null ? priceAtAdded : 0.0,
+                                        null,
+                                        selectedColor
+                                ));
+                                preLoadCheckoutItems(userId, index + 1, loadedItems, listener);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Failed to load cart item for order", e);
+                    preLoadCheckoutItems(userId, index + 1, loadedItems, listener);
+                });
+    }
+
+    private void performStockReservation(String userId, List<OrderItem> items) {
+        String reservationId = db.collection("stock_reservations").document().getId();
+
+        db.runTransaction(transaction -> {
+            List<Long> currentStocks = new ArrayList<>();
+            for (OrderItem item : items) {
+                DocumentReference productRef = db.collection("products").document(item.getProductId());
+                DocumentSnapshot productSnap = transaction.get(productRef);
+
+                if (!productSnap.exists()) {
+                    throw new FirebaseFirestoreException("Sản phẩm không tồn tại: " + item.getProductName(), FirebaseFirestoreException.Code.NOT_FOUND);
+                }
+
+                Long stock = productSnap.getLong("stockQuantity");
+                if (stock == null) stock = 0L;
+
+                if (stock < item.getQuantity()) {
+                    throw new FirebaseFirestoreException("Sản phẩm " + item.getProductName() + " chỉ còn " + stock + " sản phẩm trong kho!", FirebaseFirestoreException.Code.ABORTED);
+                }
+                currentStocks.add(stock);
+            }
+
+            for (int i = 0; i < items.size(); i++) {
+                OrderItem item = items.get(i);
+                Long currentStock = currentStocks.get(i);
+                DocumentReference productRef = db.collection("products").document(item.getProductId());
+                transaction.update(productRef, "stockQuantity", currentStock - item.getQuantity());
+            }
+
+            DocumentReference reservationRef = db.collection("stock_reservations").document(reservationId);
+
+            Map<String, Object> reservation = new HashMap<>();
+            reservation.put("reservationId", reservationId);
+            reservation.put("userId", userId);
+
+            List<Map<String, Object>> reservationItems = new ArrayList<>();
+            for (OrderItem item : items) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("productId", item.getProductId());
+                m.put("productName", item.getProductName());
+                m.put("quantity", item.getQuantity());
+                m.put("price", item.getPrice());
+                m.put("imageUrl", item.getImageUrl());
+                m.put("color", item.getColor());
+                reservationItems.add(m);
+            }
+            reservation.put("items", reservationItems);
+            reservation.put("status", "pending");
+            reservation.put("createdAt", Timestamp.now());
+
+            long fiveMinutesMillis = 5 * 60 * 1000;
+            Timestamp expiresAt = new Timestamp(new java.util.Date(System.currentTimeMillis() + fiveMinutesMillis));
+            reservation.put("expiresAt", expiresAt);
+
+            transaction.set(reservationRef, reservation);
+            return reservationId;
+        })
+        .addOnSuccessListener(resId -> {
+            if (!isAdded()) return;
+            Log.d(TAG, "Stock reserved successfully: " + resId);
+            currentReservationId = resId;
+            startStripePaymentFlowWithReservation(userId, items);
+        })
+        .addOnFailureListener(e -> {
+            if (!isAdded()) return;
+            Log.e(TAG, "Stock reservation failed", e);
+            btnPlaceOrder.setEnabled(true);
+            btnPlaceOrder.setText(R.string.checkout_place_order);
+            showNotificationDialog(
+                    "Hết hàng",
+                    e.getMessage(),
+                    "Quay lại giỏ hàng",
+                    () -> {
+                        if (isAdded()) {
+                            getParentFragmentManager().popBackStack();
+                        }
+                    }
+            );
+        });
+    }
+
+    private void startStripePaymentFlowWithReservation(String userId, List<OrderItem> items) {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (!StripeConfig.isConfigured()) {
+            Toast.makeText(requireContext(), "Stripe chưa được cấu hình. Hãy điền key test trong StripeConfig.", Toast.LENGTH_SHORT).show();
+            if (currentReservationId != null) {
+                releaseReservationImmediately(currentReservationId);
+                currentReservationId = null;
+            }
+            btnPlaceOrder.setEnabled(true);
+            btnPlaceOrder.setText(R.string.checkout_place_order);
+            return;
+        }
+
+        if (selectedPaymentMethod == null || TextUtils.isEmpty(selectedPaymentMethod.getPaymentId())) {
+            Toast.makeText(requireContext(), "Chưa có thẻ đã lưu hợp lệ. Hãy thêm thẻ mới.", Toast.LENGTH_SHORT).show();
+            if (currentReservationId != null) {
+                releaseReservationImmediately(currentReservationId);
+                currentReservationId = null;
+            }
+            btnPlaceOrder.setEnabled(true);
+            btnPlaceOrder.setText(R.string.checkout_place_order);
+            return;
+        }
+
+        String orderId = "CHECKOUT-" + System.currentTimeMillis();
+        CreatePaymentIntentRequest request = new CreatePaymentIntentRequest(
+                userId,
+                orderId,
+                subtotal,
+                vat,
+                shipping,
+                total,
+                StripeConfig.CURRENCY_USD,
+                selectedPaymentMethod.getPaymentId()
+        );
+
+        stripePaymentApiClient.createPaymentIntent(request, new StripePaymentApiClient.Callback() {
+            @Override
+            public void onSuccess(CreatePaymentIntentResponse response) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                String status = response.getStatus();
+                if (status != null && status.equalsIgnoreCase("succeeded")) {
+                    persistOrderInvoiceAndHistoryWithReservation(userId, orderId, response, items);
+                    return;
+                }
+
+                btnPlaceOrder.setEnabled(true);
+                btnPlaceOrder.setText(R.string.checkout_place_order);
+
+                if (status != null && status.equalsIgnoreCase("processing")) {
+                    Toast.makeText(requireContext(), "Thanh toán đang được xử lý, vui lòng chờ một chút.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Toast.makeText(requireContext(), "Thanh toán chưa hoàn tất: " + (status != null ? status : "unknown"), Toast.LENGTH_SHORT).show();
+                if (currentReservationId != null) {
+                    releaseReservationImmediately(currentReservationId);
+                    currentReservationId = null;
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                btnPlaceOrder.setEnabled(true);
+                btnPlaceOrder.setText(R.string.checkout_place_order);
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                if (currentReservationId != null) {
+                    releaseReservationImmediately(currentReservationId);
+                    currentReservationId = null;
+                }
+            }
+        });
+    }
+
+    private void persistOrderInvoiceAndHistoryWithReservation(String userId, String orderId, CreatePaymentIntentResponse response,
+                                                               List<OrderItem> orderItems) {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (orderItems == null || orderItems.isEmpty()) {
+            Log.w(TAG, "No order items found while saving checkout data.");
+            Toast.makeText(requireContext(), "Không thể lưu đơn hàng vì không có sản phẩm hợp lệ.", Toast.LENGTH_SHORT).show();
+            if (currentReservationId != null) {
+                releaseReservationImmediately(currentReservationId);
+                currentReservationId = null;
+            }
+            btnPlaceOrder.setEnabled(true);
+            btnPlaceOrder.setText(R.string.checkout_place_order);
+            return;
+        }
+
+        Timestamp now = Timestamp.now();
+        String paymentIntentId = !TextUtils.isEmpty(response.getPaymentIntentId()) ? response.getPaymentIntentId() : "";
+        String currency = !TextUtils.isEmpty(response.getCurrency()) ? response.getCurrency() : StripeConfig.CURRENCY_USD;
+        double amount = response.getAmount() != null ? response.getAmount() / 100.0 : total;
+        String paymentMethodLabel = buildPaymentMethodLabel();
+        String orderDocumentId = !TextUtils.isEmpty(orderId) ? orderId : db.collection("orders").document().getId();
+        String hoaDonId = db.collection("hoa_dons").document().getId();
+        String paymentHistoryId = db.collection("lich_su_thanh_toans").document().getId();
+        String invoiceNumber = "INV-" + System.currentTimeMillis();
+
+        Order order = new Order(
+                orderDocumentId,
+                userId,
+                now,
+                "Packing",
+                orderItems,
+                new OrderSummary(subtotal, shipping, vat, total),
+                buildShippingAddressSnapshot(),
+                paymentMethodLabel,
+                buildTrackingHistory(now)
+        );
+
+        HoaDon hoaDon = new HoaDon(
+                hoaDonId,
+                userId,
+                orderDocumentId,
+                invoiceNumber,
+                now,
+                null,
+                "Paid",
+                paymentMethodLabel,
+                "Stripe",
+                paymentIntentId,
+                orderItems,
+                new OrderSummary(subtotal, shipping, vat, total),
+                buildShippingAddressSnapshot(),
+                "Thanh toán thành công qua Stripe",
+                now
+        );
+
+        LichSuThanhToan history = new LichSuThanhToan(
+                paymentHistoryId,
+                userId,
+                hoaDonId,
+                orderDocumentId,
+                paymentMethodLabel,
+                "Stripe",
+                "Succeeded",
+                paymentIntentId,
+                paymentIntentId,
+                amount,
+                currency,
+                now,
+                now,
+                null,
+                ""
+        );
+
+        WriteBatch batch = db.batch();
+        batch.set(db.collection("orders").document(orderDocumentId), order);
+        batch.set(db.collection("hoa_dons").document(hoaDonId), hoaDon);
+        batch.set(db.collection("lich_su_thanh_toans").document(paymentHistoryId), history);
+
+        if (!TextUtils.isEmpty(currentReservationId)) {
+            batch.update(db.collection("stock_reservations").document(currentReservationId), "status", "completed");
+        }
+
+        if (selectedCartDocIds != null) {
+            for (String docId : selectedCartDocIds) {
+                if (!TextUtils.isEmpty(docId)) {
+                    batch.delete(db.collection("carts").document(docId));
+                }
+            }
+        }
+
+        batch.commit()
+                .addOnSuccessListener(unused -> {
+                    currentReservationId = null;
+                    markCartNeedsReload();
+                    showPaymentSuccessDialog();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to save checkout documents", e);
+                    Toast.makeText(requireContext(), "Thanh toán thành công nhưng không lưu được đơn/hóa đơn: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    currentReservationId = null;
+                    MainNavigationHelper.navigateBackToHome(this);
+                });
+    }
+
+    private void releaseReservationImmediately(String reservationId) {
+        if (TextUtils.isEmpty(reservationId)) return;
+
+        db.runTransaction(transaction -> {
+            DocumentReference resRef = db.collection("stock_reservations").document(reservationId);
+            DocumentSnapshot resSnap = transaction.get(resRef);
+
+            if (resSnap.exists() && "pending".equals(resSnap.getString("status"))) {
+                List<Map<String, Object>> items = (List<Map<String, Object>>) resSnap.get("items");
+                if (items != null) {
+                    for (Map<String, Object> item : items) {
+                        String productId = (String) item.get("productId");
+                        Long quantity = (Long) item.get("quantity");
+                        if (productId != null && quantity != null) {
+                            DocumentReference productRef = db.collection("products").document(productId);
+                            DocumentSnapshot productSnap = transaction.get(productRef);
+                            if (productSnap.exists()) {
+                                Long currentStock = productSnap.getLong("stockQuantity");
+                                if (currentStock == null) currentStock = 0L;
+                                transaction.update(productRef, "stockQuantity", currentStock + quantity);
+                            }
+                        }
+                    }
+                }
+                transaction.update(resRef, "status", "released", "releasedAt", Timestamp.now());
+            }
+            return null;
+        })
+        .addOnSuccessListener(unused -> Log.d(TAG, "Reservation " + reservationId + " released immediately."))
+        .addOnFailureListener(e -> Log.e(TAG, "Failed to release reservation immediately: " + reservationId, e));
+    }
+
+    private void showNotificationDialog(String titleText, String messageText, String buttonText, Runnable onButtonClick) {
+        if (!isAdded()) {
+            return;
+        }
+        Dialog dialog = new Dialog(requireContext());
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_success);
+
+        TextView title = dialog.findViewById(R.id.tv_success_title);
+        TextView message = dialog.findViewById(R.id.tv_success_message);
+        AppCompatButton btnThanks = dialog.findViewById(R.id.btn_thanks);
+
+        if (title != null) {
+            title.setText(titleText);
+        }
+        if (message != null) {
+            message.setText(messageText);
+        }
+        if (btnThanks != null) {
+            btnThanks.setText(buttonText);
+            btnThanks.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (onButtonClick != null) {
+                    onButtonClick.run();
+                }
+            });
+        }
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+
+        dialog.setCancelable(false);
+        dialog.show();
+    }
 
     private void replaceFragment(Fragment fragment) {
         FragmentTransaction transaction = getParentFragmentManager().beginTransaction();

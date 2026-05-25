@@ -3,11 +3,19 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const Stripe = require('stripe');
 const path = require('path');
+const admin = require('firebase-admin');
 
 const envResult = dotenv.config({ path: path.join(__dirname, '.env') });
 if (envResult.error) {
   console.warn('Failed to load .env from backend folder:', envResult.error.message);
 }
+
+// Initialize Firebase Admin SDK
+const serviceAccount = require('./serviceAccountKey.json');
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+const db = admin.firestore();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -194,6 +202,69 @@ app.post('/api/payment-methods/create-card', async (req, res) => {
     return res.status(500).json({ message: error?.message || 'Failed to create PaymentMethod.' });
   }
 });
+
+// Scheduler to release expired stock reservations (status === 'pending' and expiresAt < now)
+async function cleanupExpiredReservations() {
+  try {
+    const now = admin.firestore.Timestamp.now();
+    const expiredQuery = await db.collection('stock_reservations')
+      .where('status', '==', 'pending')
+      .where('expiresAt', '<', now)
+      .limit(20)
+      .get();
+
+    if (expiredQuery.empty) {
+      return;
+    }
+
+    console.log(`[Scheduler] Found ${expiredQuery.size} expired reservations. Releasing stock...`);
+
+    for (const doc of expiredQuery.docs) {
+      const reservationId = doc.id;
+      const reservationData = doc.data();
+      const items = reservationData.items || [];
+
+      try {
+        await db.runTransaction(async (transaction) => {
+          const resRef = db.collection('stock_reservations').doc(reservationId);
+          const resSnap = await transaction.get(resRef);
+          
+          if (!resSnap.exists || resSnap.data().status !== 'pending') {
+            return; // Already processed
+          }
+
+          // Return stock for each item
+          for (const item of items) {
+            if (item.productId && item.quantity) {
+              const productRef = db.collection('products').doc(item.productId);
+              const productSnap = await transaction.get(productRef);
+              if (productSnap.exists) {
+                const currentStock = productSnap.data().stockQuantity || 0;
+                transaction.update(productRef, {
+                  stockQuantity: currentStock + Number(item.quantity)
+                });
+              }
+            }
+          }
+
+          // Update reservation status to released
+          transaction.update(resRef, {
+            status: 'released',
+            releasedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        });
+        console.log(`[Scheduler] Successfully released reservation: ${reservationId}`);
+      } catch (transError) {
+        console.error(`[Scheduler] Transaction failed for reservation ${reservationId}:`, transError);
+      }
+    }
+  } catch (error) {
+    console.error('[Scheduler] Error cleaning up expired reservations:', error);
+  }
+}
+
+// Run every 1 minute
+setInterval(cleanupExpiredReservations, 60000);
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Stripe backend listening on http://localhost:${port}`);
