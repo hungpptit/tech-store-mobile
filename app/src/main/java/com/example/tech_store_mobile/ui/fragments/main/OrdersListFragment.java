@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -177,12 +178,31 @@ public class OrdersListFragment extends Fragment implements OrderAdapter.OnOrder
     }
 
     @Override
-    public void onLeaveReview(OrderItem item) {
-        showLeaveReviewDialog(item.getProductId(), item.getProductName());
+    public void onLeaveReview(Order order, OrderItem item) {
+        if (item.getIsReviewed()) {
+            db.collection("products").document(item.getProductId()).get().addOnSuccessListener(documentSnapshot -> {
+                if (!isAdded()) return;
+                double rating = 0.0;
+                long count = 0L;
+                if (documentSnapshot.exists()) {
+                    Double ratingVal = documentSnapshot.getDouble("rating");
+                    Long countVal = documentSnapshot.getLong("reviewCount");
+                    if (ratingVal != null) rating = ratingVal;
+                    if (countVal != null) count = countVal;
+                }
+                replaceFragment(ReviewFragment.newInstance(item.getProductId(), item.getProductName(), rating, count));
+            }).addOnFailureListener(e -> {
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), "Failed to load product reviews", Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            showLeaveReviewDialog(order.getOrderId(), item.getProductId(), item.getProductName());
+        }
     }
 
-    private void showLeaveReviewDialog(String productId, String productName) {
-        LeaveReviewBottomSheet bottomSheet = LeaveReviewBottomSheet.newInstance(productId, productName);
+    private void showLeaveReviewDialog(String orderId, String productId, String productName) {
+        LeaveReviewBottomSheet bottomSheet = LeaveReviewBottomSheet.newInstance(orderId, productId, productName);
         bottomSheet.show(getChildFragmentManager(), "LeaveReviewBottomSheet");
     }
 

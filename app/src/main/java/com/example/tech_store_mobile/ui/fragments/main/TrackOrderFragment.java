@@ -166,7 +166,7 @@ public class TrackOrderFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             TrackingStep step = steps.get(position);
-            holder.tvStatus.setText(step.status);
+            holder.tvStatus.setText(com.example.tech_store_mobile.utils.OrderStatusUtil.getViStatus(step.status));
 
             // Không sử dụng trackingHistory nên ẩn các view chi tiết (location, time) trong mỗi bước
             holder.tvLocation.setVisibility(View.GONE);

@@ -7,6 +7,7 @@ public class OrderItem {
     private Double price;
     private String imageUrl;
     private String color;
+    private Boolean isReviewed = false;
 
     public OrderItem() {
     }
@@ -19,6 +20,7 @@ public class OrderItem {
         this.price = price;
         this.imageUrl = imageUrl;
         this.color = color;
+        this.isReviewed = false;
     }
 
     public String getProductId() {
@@ -67,6 +69,14 @@ public class OrderItem {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public Boolean getIsReviewed() {
+        return isReviewed != null ? isReviewed : false;
+    }
+
+    public void setIsReviewed(Boolean isReviewed) {
+        this.isReviewed = isReviewed;
     }
 }
 

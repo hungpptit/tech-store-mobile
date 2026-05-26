@@ -65,7 +65,9 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
 
         public void bind(UserNotification notification, int position) {
             tvTitle.setText(notification.getTitle() != null ? notification.getTitle() : "");
-            tvContent.setText(notification.getContent() != null ? notification.getContent() : "");
+            
+            String content = notification.getContent() != null ? notification.getContent() : "";
+            tvContent.setText(com.example.tech_store_mobile.utils.OrderStatusUtil.translateNotificationContent(content));
 
             // Format time
             if (notification.getCreatedAt() != null) {

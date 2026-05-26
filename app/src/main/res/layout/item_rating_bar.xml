@@ -17,27 +17,19 @@
         android:maxLines="1"
         android:ellipsize="end" />
 
-    <!-- Progress bar container -->
-    <FrameLayout
+    <!-- Progress bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="0dp"
         android:layout_height="8dp"
         android:layout_weight="1"
         android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp">
-
-        <!-- Background (gray) -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#D3D3D3" />
-
-        <!-- Progress bar (black, overlay) -->
-        <View
-            android:id="@+id/progressBar"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#333333" />
-    </FrameLayout>
+        android:layout_marginEnd="12dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="#333333"
+        android:progressBackgroundTint="#D3D3D3"/>
 
     <!-- Count -->
     <TextView

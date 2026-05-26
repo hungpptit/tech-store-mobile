@@ -36,7 +36,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
 
     public interface OnOrderActionListener {
         void onTrackOrder(Order order);
-        void onLeaveReview(OrderItem item);
+        void onLeaveReview(Order order, OrderItem item);
     }
 
     public OrderAdapter(List<DisplayItem> displayItems, boolean isOngoing, OnOrderActionListener listener) {
@@ -63,7 +63,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         holder.tvPrice.setText(String.format(Locale.US, "$ %.2f", item.getPrice()));
         
         // HIỂN THỊ STATUS CỦA ORDER LÊN BADGE (Không phải statusName của tracking)
-        holder.tvStatus.setText(order.getStatus());
+        holder.tvStatus.setText(com.example.tech_store_mobile.utils.OrderStatusUtil.getViStatus(order.getStatus()));
 
         Glide.with(holder.itemView.getContext())
                 .load(item.getImageUrl())
@@ -72,10 +72,21 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
 
         if (isOngoing) {
             holder.btnAction.setText("Track Order");
+            holder.btnAction.setEnabled(true);
+            holder.btnAction.setAlpha(1.0f);
             holder.btnAction.setOnClickListener(v -> listener.onTrackOrder(order));
         } else {
-            holder.btnAction.setText("Leave Review");
-            holder.btnAction.setOnClickListener(v -> listener.onLeaveReview(item));
+            if (item.getIsReviewed()) {
+                holder.btnAction.setText("Reviewed");
+                holder.btnAction.setEnabled(true);
+                holder.btnAction.setAlpha(1.0f);
+                holder.btnAction.setOnClickListener(v -> listener.onLeaveReview(order, item));
+            } else {
+                holder.btnAction.setText("Leave Review");
+                holder.btnAction.setEnabled(true);
+                holder.btnAction.setAlpha(1.0f);
+                holder.btnAction.setOnClickListener(v -> listener.onLeaveReview(order, item));
+            }
         }
     }
 

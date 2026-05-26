@@ -6,7 +6,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -19,6 +18,7 @@ import com.example.tech_store_mobile.Model.UserNotification;
 import com.example.tech_store_mobile.R;
 import com.example.tech_store_mobile.adapters.NotificationAdapter;
 import com.example.tech_store_mobile.utils.AuthManager;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
@@ -36,11 +36,17 @@ public class NotificationsFragment extends Fragment {
     private NotificationAdapter adapter;
     private List<UserNotification> notificationList;
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private int loadCallbacksExpected = 0;
-    private int loadCallbacksCompleted = 0;
+
+    // Các trường phục vụ phân trang (Pagination)
+    private final List<UserNotification> personalList = new ArrayList<>();
+    private final List<UserNotification> globalList = new ArrayList<>();
+    private DocumentSnapshot lastVisiblePersonal = null;
+    private boolean isLastPagePersonal = false;
+    private boolean isLoading = false;
+    private final int PAGE_SIZE = 20;
+    private String currentUserId = null;
 
     private static final String PREFS_NAME = "read_announcements_prefs";
-    private static final String KEY_READ_ANNOUNCEMENTS = "read_announcements_list";
 
     @Nullable
     @Override
@@ -64,11 +70,34 @@ public class NotificationsFragment extends Fragment {
         notificationList = new ArrayList<>();
         adapter = new NotificationAdapter(notificationList);
         adapter.setOnNotificationClickListener((notification, position) -> {
-            // Mark as read when clicked
+            // Đánh dấu đã đọc khi click
             markAsRead(notification);
         });
-        rvNotifications.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        rvNotifications.setLayoutManager(layoutManager);
         rvNotifications.setAdapter(adapter);
+
+        // Lắng nghe sự kiện cuộn của RecyclerView để thực hiện phân trang (Infinite Scroll)
+        rvNotifications.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                // Nếu đang tải hoặc đã hết trang cá nhân thì không load tiếp
+                if (isLoading || isLastPagePersonal) return;
+
+                int visibleItemCount = layoutManager.getChildCount();
+                int totalItemCount = layoutManager.getItemCount();
+                int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+                // Kiểm tra xem đã cuộn tới cuối danh sách chưa
+                if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                        && firstVisibleItemPosition >= 0) {
+                    loadMoreNotifications();
+                }
+            }
+        });
     }
 
     private void setupListeners(View view) {
@@ -79,107 +108,142 @@ public class NotificationsFragment extends Fragment {
     }
 
     private void loadNotifications() {
-        String userId = AuthManager.getCurrentUid();
-        if (userId == null) {
+        currentUserId = AuthManager.getCurrentUid();
+        if (currentUserId == null) {
             notificationList.clear();
+            personalList.clear();
+            globalList.clear();
             showEmptyState();
             return;
         }
 
-        Log.d(TAG, "Loading notifications for user: " + userId);
+        Log.d(TAG, "Loading notifications for user: " + currentUserId);
 
+        personalList.clear();
+        globalList.clear();
         notificationList.clear();
-        loadCallbacksExpected = 2; // Expect 2 callbacks (personal + announcements)
-        loadCallbacksCompleted = 0;
+        lastVisiblePersonal = null;
+        isLastPagePersonal = false;
+        isLoading = true;
 
-        // Load personal notifications
-        loadPersonalNotifications(userId);
-        // Load global announcements (shown as notifications too)
-        loadGlobalAnnouncements();
+        // Bắt đầu bằng việc tải thông báo chung (global), sau đó tải trang đầu tiên của thông báo cá nhân
+        loadGlobalAnnouncements(() -> {
+            loadPersonalNotificationsPage();
+        });
     }
 
-    private void loadPersonalNotifications(String userId) {
-        // Query without orderBy to avoid composite index requirement
-        // We'll sort in code instead
-        db.collection("notifications")
-                .whereEqualTo("userId", userId)
-                .get()
+    private void loadPersonalNotificationsPage() {
+        if (currentUserId == null) {
+            isLoading = false;
+            return;
+        }
+
+        isLoading = true;
+        Log.d(TAG, "Fetching page of personal notifications. LastVisible is null? " + (lastVisiblePersonal == null));
+
+        Query query = db.collection("notifications")
+                .whereEqualTo("userId", currentUserId)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(PAGE_SIZE);
+
+        if (lastVisiblePersonal != null) {
+            query = query.startAfter(lastVisiblePersonal);
+        }
+
+        query.get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!isAdded()) return;
 
-                    // Map documents to UserNotification objects with document ID as notificationId
-                    queryDocumentSnapshots.getDocuments().forEach(doc -> {
-                        UserNotification notif = doc.toObject(UserNotification.class);
-                        // Use document ID if notificationId field is null
-                        if (notif != null && (notif.getNotificationId() == null || notif.getNotificationId().isEmpty())) {
-                            notif.setNotificationId(doc.getId());
-                        }
-                        if (notif != null) {
-                            notificationList.add(notif);
-                        }
-                    });
+                    List<DocumentSnapshot> docs = queryDocumentSnapshots.getDocuments();
+                    if (!docs.isEmpty()) {
+                        lastVisiblePersonal = docs.get(docs.size() - 1);
 
-                    Log.d(TAG, "Loaded " + queryDocumentSnapshots.size() + " personal notifications");
-                    onLoadCallbackCompleted();
+                        docs.forEach(doc -> {
+                            UserNotification notif = doc.toObject(UserNotification.class);
+                            if (notif != null && (notif.getNotificationId() == null || notif.getNotificationId().isEmpty())) {
+                                notif.setNotificationId(doc.getId());
+                            }
+                            if (notif != null) {
+                                personalList.add(notif);
+                            }
+                        });
+                    }
+
+                    if (docs.size() < PAGE_SIZE) {
+                        isLastPagePersonal = true;
+                        Log.d(TAG, "Reached last page of personal notifications");
+                    }
+
+                    Log.d(TAG, "Loaded " + docs.size() + " personal notifications. Total in memory: " + personalList.size());
+                    mergeAndDisplayNotifications();
+                    isLoading = false;
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to load notifications", e);
+                    Log.e(TAG, "Failed to load personal notifications page", e);
+                    isLoading = false;
                     if (isAdded()) {
                         Toast.makeText(requireContext(), "Lỗi khi tải thông báo", Toast.LENGTH_SHORT).show();
+                        if (e.getMessage() != null && e.getMessage().contains("FAILED_PRECONDITION")) {
+                            Log.e(TAG, "Lỗi thiếu chỉ mục (Composite Index). Vui lòng click vào link trong Logcat phía dưới để tạo chỉ mục trên Firebase.");
+                        }
                     }
-                    onLoadCallbackCompleted();
                 });
     }
 
-    private void loadGlobalAnnouncements() {
-        // Query without orderBy to avoid composite index requirement
+    private void loadGlobalAnnouncements(Runnable onComplete) {
         db.collection("global_announcements")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(50) // Giới hạn tối đa 50 thông báo chung gần nhất
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!isAdded()) return;
 
-                    // Convert global announcements to UserNotification format for display
                     queryDocumentSnapshots.getDocuments().forEach(doc -> {
                         String title = doc.getString("title");
                         String content = doc.getString("content");
                         Object createdAtObj = doc.get("createdAt");
                         String announcementId = doc.getId();
 
-                        // Create UserNotification from global announcement
                         UserNotification notif = new UserNotification();
                         notif.setNotificationId("announcement_" + announcementId);
                         notif.setTitle((title != null ? title : "Thông báo"));
                         notif.setContent((content != null ? content : ""));
                         notif.setType("System");
-                        
+
                         // Kiểm tra trạng thái đã đọc trong SharedPreferences
                         notif.setIsRead(isAnnouncementRead(notif.getNotificationId())); 
-                        
+
                         if (createdAtObj instanceof com.google.firebase.Timestamp) {
                             notif.setCreatedAt((com.google.firebase.Timestamp) createdAtObj);
                         }
 
-                        notificationList.add(notif);
+                        globalList.add(notif);
                     });
 
-                    Log.d(TAG, "Loaded " + queryDocumentSnapshots.size() + " global announcements");
-                    onLoadCallbackCompleted();
+                    Log.d(TAG, "Loaded " + globalList.size() + " global announcements");
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
                 })
                 .addOnFailureListener(e -> {
                     Log.w(TAG, "Failed to load announcements (not critical)", e);
-                    onLoadCallbackCompleted();
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
                 });
     }
 
-    private void onLoadCallbackCompleted() {
-        loadCallbacksCompleted++;
-        if (loadCallbacksCompleted >= loadCallbacksExpected) {
-            updateUI();
-        }
+    private void loadMoreNotifications() {
+        if (isLoading || isLastPagePersonal) return;
+        loadPersonalNotificationsPage();
     }
 
-    private void updateUI() {
-        // Sort by createdAt descending
+    private void mergeAndDisplayNotifications() {
+        notificationList.clear();
+        notificationList.addAll(personalList);
+        notificationList.addAll(globalList);
+
+        // Sắp xếp gộp chung theo createdAt giảm dần (mới nhất lên đầu)
         notificationList.sort((n1, n2) -> {
             if (n1.getCreatedAt() == null || n2.getCreatedAt() == null) return 0;
             return n2.getCreatedAt().compareTo(n1.getCreatedAt());
@@ -204,7 +268,7 @@ public class NotificationsFragment extends Fragment {
             return;
         }
 
-        // Update isRead in Firestore cho thông báo cá nhân
+        // Cập nhật isRead trong Firestore cho thông báo cá nhân
         db.collection("notifications")
                 .document(notification.getNotificationId())
                 .update("isRead", true)
@@ -220,15 +284,16 @@ public class NotificationsFragment extends Fragment {
     }
 
     private boolean isAnnouncementRead(String id) {
+        if (getContext() == null) return false;
         android.content.SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
         return prefs.getBoolean(id, false);
     }
 
     private void saveReadAnnouncement(String id) {
+        if (getContext() == null) return;
         android.content.SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
         prefs.edit().putBoolean(id, true).apply();
     }
-
 
     private void showEmptyState() {
         rvNotifications.setVisibility(View.GONE);
@@ -243,8 +308,5 @@ public class NotificationsFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        // Bỏ loadNotifications() ở đây để tránh duplicate khi Fragment hiển thị lại
     }
 }
-
-

@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
 import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -369,16 +370,12 @@ public class ReviewFragment extends Fragment {
         tvStars.setText(starStr.toString());
         tvStars.setTextColor(0xFFFFC107); // Gold color
 
-        // Set progress bar width based on percentage
-        View progressBar = ratingBarView.findViewById(R.id.progressBar);
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) progressBar.getLayoutParams();
+        // Set progress bar progress based on percentage
+        ProgressBar progressBar = ratingBarView.findViewById(R.id.progressBar);
 
         // Calculate percentage (0-100%)
         float percentage = total > 0 ? (count * 100f) / total : 0f;
-
-        // Set width as percentage of parent
-        params.width = (int) (percentage * 2.56); // Approximate conversion for percentage width
-        progressBar.setLayoutParams(params);
+        progressBar.setProgress(Math.round(percentage));
 
         // Set count
         TextView tvCount = ratingBarView.findViewById(R.id.tvCount);

@@ -326,11 +326,13 @@ public class CheckoutFragment extends Fragment {
         }
 
         if (selectedAddress != null) {
-            tvAddressNickname.setText(safeText(selectedAddress.getNickname(), getString(R.string.checkout_delivery_address)));
-            tvAddressDetail.setText(safeText(selectedAddress.getFullAddress(), getString(R.string.checkout_address_detail)));
+            tvAddressNickname.setText(safeText(selectedAddress.getNickname(), "Địa chỉ giao hàng"));
+            tvAddressDetail.setText(selectedAddress.getFullAddress());
+            tvAddressDetail.setTextColor(Color.parseColor("#9B9B9B"));
         } else {
-            tvAddressNickname.setText(R.string.checkout_delivery_address);
-            tvAddressDetail.setText(R.string.checkout_address_detail);
+            tvAddressNickname.setText("Chưa có địa chỉ nhận hàng");
+            tvAddressDetail.setText("Vui lòng thêm địa chỉ giao hàng để tiếp tục!");
+            tvAddressDetail.setTextColor(Color.parseColor("#D32F2F"));
         }
     }
 
@@ -377,6 +379,11 @@ public class CheckoutFragment extends Fragment {
 
         btnEditCard.setOnClickListener(v -> replaceFragment(new PaymentMethodFragment()));
         btnPlaceOrder.setOnClickListener(v -> {
+            if (selectedAddress == null) {
+                Toast.makeText(requireContext(), "Vui lòng chọn hoặc thêm địa chỉ nhận hàng trước khi thanh toán!", Toast.LENGTH_LONG).show();
+                return;
+            }
+
             if (isCardPaymentSelected) {
                 String userId = AuthManager.getCurrentUid();
                 if (userId == null) {
