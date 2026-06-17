@@ -254,6 +254,15 @@ public class ProductDetailFragment extends Fragment {
                             ? snapshot.getLong("quantity")
                             : 0L;
 
+                    long targetQuantity = currentQuantity + 1;
+                    Long stock = product.getStockQuantity();
+                    long maxStock = stock != null ? stock : 0L;
+
+                    if (targetQuantity > maxStock) {
+                        Toast.makeText(requireContext(), "Không thể thêm vào giỏ hàng. Chỉ còn " + maxStock + " sản phẩm trong kho!", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
                     java.util.Map<String, Object> cartData = new java.util.HashMap<>();
                     cartData.put("userId", userId);
                     cartData.put("productId", productId);
@@ -261,7 +270,7 @@ public class ProductDetailFragment extends Fragment {
                     cartData.put("selectedColor", selectedColor);
                     cartData.put("imageUrl", product.getImageUrl());
                     cartData.put("priceAtAdded", priceAtAdded);
-                    cartData.put("quantity", currentQuantity + 1);
+                    cartData.put("quantity", targetQuantity);
 
                     db.collection("carts").document(docId).set(cartData)
                             .addOnSuccessListener(unused -> Toast.makeText(requireContext(), "Added to cart! Color: " + selectedColor, Toast.LENGTH_SHORT).show())

@@ -39,12 +39,13 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final double priceAtAdded;
         private int quantity;
         private boolean selected;
+        private long stockQuantity;
 
-        public CartEntry(String cartDocId, String productId, String productName, String selectedColor, String imageUrl, double priceAtAdded, int quantity) {
-            this(cartDocId, productId, productName, selectedColor, null, imageUrl, priceAtAdded, quantity, false);
+        public CartEntry(String cartDocId, String productId, String productName, String selectedColor, String imageUrl, double priceAtAdded, int quantity, long stockQuantity) {
+            this(cartDocId, productId, productName, selectedColor, null, imageUrl, priceAtAdded, quantity, false, stockQuantity);
         }
 
-        private CartEntry(String cartDocId, String productId, String productName, String selectedColor, Integer imageResId, String imageUrl, double priceAtAdded, int quantity, boolean selected) {
+        private CartEntry(String cartDocId, String productId, String productName, String selectedColor, Integer imageResId, String imageUrl, double priceAtAdded, int quantity, boolean selected, long stockQuantity) {
             this.cartDocId = cartDocId;
             this.productId = productId;
             this.productName = productName;
@@ -54,6 +55,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             this.priceAtAdded = priceAtAdded;
             this.quantity = quantity;
             this.selected = selected;
+            this.stockQuantity = stockQuantity;
         }
 
         public String getCartDocId() { return cartDocId; }
@@ -68,6 +70,8 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         public boolean isSelected() { return selected; }
         public void setSelected(boolean selected) { this.selected = selected; }
         public double getLineTotal() { return priceAtAdded * quantity; }
+        public long getStockQuantity() { return stockQuantity; }
+        public void setStockQuantity(long stockQuantity) { this.stockQuantity = stockQuantity; }
     }
 
     public interface OnCartActionListener {
@@ -143,6 +147,14 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         holder.tvPrice.setText(formatMoney(item.getPriceAtAdded()));
         holder.tvQuantity.setText(String.valueOf(item.getQuantity()));
 
+        long stock = item.getStockQuantity();
+        holder.tvStockCount.setText(String.format(Locale.getDefault(), "Stock: %d", stock));
+        if (stock < 5) {
+            holder.tvStockCount.setTextColor(android.graphics.Color.parseColor("#FF3B30"));
+        } else {
+            holder.tvStockCount.setTextColor(android.graphics.Color.parseColor("#1A1A1A"));
+        }
+
         holder.btnDelete.setOnClickListener(v -> {
             int adapterPosition = holder.getBindingAdapterPosition();
             if (adapterPosition != RecyclerView.NO_POSITION && actionListener != null) {
@@ -184,6 +196,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         TextView tvColor;
         TextView tvPrice;
         TextView tvQuantity;
+        TextView tvStockCount;
 
         ItemViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -196,6 +209,7 @@ public class CartAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             tvColor = itemView.findViewById(R.id.tvColor);
             tvPrice = itemView.findViewById(R.id.tvPrice);
             tvQuantity = itemView.findViewById(R.id.tvQuantity);
+            tvStockCount = itemView.findViewById(R.id.tvStockCount);
         }
     }
 

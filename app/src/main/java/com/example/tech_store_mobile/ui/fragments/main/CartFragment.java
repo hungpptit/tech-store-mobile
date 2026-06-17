@@ -143,9 +143,22 @@ public class CartFragment extends Fragment {
             public void onIncreaseQuantity(int position) {
                 if (position >= 0 && position < cartEntries.size()) {
                     CartAdapter.CartEntry item = cartEntries.get(position);
-                    item.setQuantity(item.getQuantity() + 1);
-                    cartAdapter.notifyItemChanged(position);
-                    updateCartSummary();
+                    long maxStock = item.getStockQuantity();
+                    if (item.getQuantity() >= maxStock) {
+                        Toast.makeText(getContext(), "Không thể tăng thêm. Chỉ còn " + maxStock + " sản phẩm trong kho!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    int newQty = item.getQuantity() + 1;
+                    db.collection("carts").document(item.getCartDocId())
+                            .update("quantity", newQty)
+                            .addOnSuccessListener(aVoid -> {
+                                item.setQuantity(newQty);
+                                cartAdapter.notifyItemChanged(position);
+                                updateCartSummary();
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(getContext(), "Lỗi cập nhật giỏ hàng: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
                 }
             }
 
@@ -154,10 +167,18 @@ public class CartFragment extends Fragment {
                 if (position >= 0 && position < cartEntries.size()) {
                     CartAdapter.CartEntry item = cartEntries.get(position);
                     if (item.getQuantity() > 1) {
-                        item.setQuantity(item.getQuantity() - 1);
-                        cartAdapter.notifyItemChanged(position);
+                        int newQty = item.getQuantity() - 1;
+                        db.collection("carts").document(item.getCartDocId())
+                                .update("quantity", newQty)
+                                .addOnSuccessListener(aVoid -> {
+                                    item.setQuantity(newQty);
+                                    cartAdapter.notifyItemChanged(position);
+                                    updateCartSummary();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(getContext(), "Lỗi cập nhật giỏ hàng: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                });
                     }
-                    updateCartSummary();
                 }
             }
 
@@ -322,6 +343,8 @@ public class CartFragment extends Fragment {
                     String productName = productSnapshot.getString("productName") != null ? productSnapshot.getString("productName") : "Unknown item";
                     String imageUrl = productSnapshot.getString("imageUrl");
                     Double price = priceAtAdded != null ? priceAtAdded : productSnapshot.getDouble("finalPrice");
+                    Long stock = productSnapshot.getLong("stockQuantity");
+                    long stockVal = stock != null ? stock : 0L;
 
                     cartEntries.add(new CartAdapter.CartEntry(
                             doc.getId(),
@@ -330,7 +353,8 @@ public class CartFragment extends Fragment {
                             selectedColor,
                             imageUrl,
                             price != null ? price : 0.0,
-                            quantity != null ? quantity.intValue() : 1
+                            quantity != null ? quantity.intValue() : 1,
+                            stockVal
                     ));
                     loadedCartKeys.add(logicalKey);
 
@@ -377,6 +401,26 @@ public class CartFragment extends Fragment {
             return;
         }
 
+        ArrayList<String> selectedCartDocIds = new ArrayList<>();
+        for (CartAdapter.CartEntry item : cartEntries) {
+            if (item.isSelected()) {
+                if (item.getStockQuantity() <= 0) {
+                    Toast.makeText(requireContext(), "Sản phẩm " + item.getProductName() + " đã hết hàng!", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (item.getQuantity() > item.getStockQuantity()) {
+                    Toast.makeText(requireContext(), "Sản phẩm " + item.getProductName() + " chỉ còn " + item.getStockQuantity() + " sản phẩm trong kho!", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                selectedCartDocIds.add(item.getCartDocId());
+            }
+        }
+
+        if (selectedCartDocIds.isEmpty()) {
+            Toast.makeText(requireContext(), "Hãy chọn ít nhất 1 sản phẩm để thanh toán.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         View viewPager = requireActivity().findViewById(R.id.view_pager);
         View fragmentContainer = requireActivity().findViewById(R.id.fragment_container);
 
@@ -385,24 +429,6 @@ public class CartFragment extends Fragment {
         }
         if (fragmentContainer != null) {
             fragmentContainer.setVisibility(View.VISIBLE);
-        }
-
-        ArrayList<String> selectedCartDocIds = new ArrayList<>();
-        for (CartAdapter.CartEntry item : cartEntries) {
-            if (item.isSelected()) {
-                selectedCartDocIds.add(item.getCartDocId());
-            }
-        }
-
-        if (selectedCartDocIds.isEmpty()) {
-            Toast.makeText(requireContext(), "Hãy chọn ít nhất 1 sản phẩm để thanh toán.", Toast.LENGTH_SHORT).show();
-            if (viewPager != null) {
-                viewPager.setVisibility(View.VISIBLE);
-            }
-            if (fragmentContainer != null) {
-                fragmentContainer.setVisibility(View.GONE);
-            }
-            return;
         }
 
         CheckoutFragment checkoutFragment = CheckoutFragment.newInstance(currentSubtotal, currentVat, currentShipping, currentTotal, selectedCartDocIds);
