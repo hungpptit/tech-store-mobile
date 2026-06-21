@@ -17,9 +17,11 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
 *   **Sự kiện UI (Click nút):** Người dùng nhấn nút **"Place Order"** (`btnPlaceOrder`) trên màn hình Checkout.
 *   **Chi tiết các hàm được gọi & Vai trò:**
     1.  `preLoadCheckoutItems(String userId, int index, List<OrderItem> loadedItems, OnItemsLoadedListener listener)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/CheckoutFragment.java`
         *   **Chức năng:** Tải danh sách chi tiết các mặt hàng cần thanh toán từ database Firestore.
         *   **Vai trò:** Đảm bảo dữ liệu về giá bán, số lượng thực tế trong giỏ của người dùng trước khi tiến hành thanh toán là hoàn toàn khớp với máy chủ, tránh gian lận hoặc sai lệch dữ liệu.
     2.  `performStockReservation(String userId, List<OrderItem> items)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/CheckoutFragment.java`
         *   **Chức năng:** Thực hiện kiểm tra tồn kho và trừ kho tạm thời trong một Firestore Transaction.
         *   **Vai trò:** Giữ hàng cho người dùng trong **5 phút** bằng cách đẩy Model `StockReservation` lên Firestore, tránh việc người khác mua mất sản phẩm trong lúc khách hàng đang điền thông tin thanh toán (tránh lỗi bán quá đà - overselling).
 *   **Tệp tin xử lý chính:** `CheckoutFragment.java`
@@ -44,15 +46,19 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
 *   **Sự kiện UI (Click nút):** Kích hoạt tự động ngay sau khi bước giữ kho thành công trả về `OnSuccessListener` (nhận `reservationId`).
 *   **Chi tiết các hàm được gọi & Vai trò:**
     1.  `startStripePaymentFlowWithReservation(String userId, List<OrderItem> items)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/CheckoutFragment.java`
         *   **Chức năng:** Điều phối luồng thanh toán Stripe sau khi đã giữ kho thành công.
         *   **Vai trò:** Khởi tạo tiến trình tạo Payment Intent, khóa nút Place Order tránh nhấn đúp và đảm bảo các điều kiện cấu hình Stripe đã sẵn sàng.
     2.  `stripePaymentApiClient.createPaymentIntent(CreatePaymentIntentRequest request, Callback callback)`
+        *   **Vị trí file:** Định nghĩa tại `app/src/main/java/com/example/tech_store_mobile/utils/StripePaymentApiClient.java` (được gọi từ `CheckoutFragment.java`)
         *   **Chức năng:** Gửi yêu cầu HTTP POST tạo Payment Intent kèm ID thẻ và số tiền lên backend Node.js.
         *   **Vai trò:** Kết nối ứng dụng Android với cổng thanh toán Stripe API thông qua API backend, đảm bảo bảo mật thông tin giao dịch.
     3.  `persistOrderInvoiceAndHistoryWithReservation(String userId, String orderId, CreatePaymentIntentResponse response, List<OrderItem> items)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/CheckoutFragment.java`
         *   **Chức năng:** Ghi nhận đồng thời Đơn hàng (`Order`), Hóa đơn (`HoaDon`), Lịch sử thanh toán (`LichSuThanhToan`) và cập nhật trạng thái giữ kho thành `completed`.
         *   **Vai trò:** Lưu trữ vết giao dịch thành công vào database một cách nhất quán (Atomic Write) và dọn sạch giỏ hàng của người dùng.
     4.  `releaseReservationImmediately(String reservationId)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/CheckoutFragment.java`
         *   **Chức năng:** Cộng trả lại số lượng tồn kho cho sản phẩm và giải phóng bản ghi giữ kho.
         *   **Vai trò:** Hoàn trả lại hàng cho kho ngay lập tức khi thanh toán thất bại để người dùng khác có thể mua, tránh lãng phí tồn kho.
 *   **Tệp tin xử lý chính:** `CheckoutFragment.java` & `StripePaymentApiClient.java`
@@ -79,11 +85,13 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
     *   Nhấn nút **"Add Address"** (`btnAdd`) trên màn hình thêm địa chỉ mới.
 *   **Chi tiết các hàm được gọi & Vai trò:**
     1.  `setupLocationSpinners()`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/AddAddressFragment.java`
         *   **Chức năng:** Cấu hình và nạp dữ liệu các Spinner Tỉnh/Huyện/Xã hành chính.
         *   **Vai trò:** Liên kết API địa chính Việt Nam để cập nhật động danh sách đơn vị hành chính theo lựa chọn của người dùng, đảm bảo nhập địa chỉ chính xác.
     2.  `saveAddress()`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/AddAddressFragment.java`
         *   **Chức năng:** Xử lý logic kiểm tra thông tin và lưu địa chỉ vào Firestore.
-        *   **Vai trò:** Đóng gói thông tin thành Model `Address` và thực thi ghi dữ liệu (đồng thời vô hiệu hóa cờ default của các địa chỉ cũ nếu địa chỉ mới là mặc định).
+        *   **Vai trò:** Đóng gói thông tin thành Model `Address` và thực thi ghi dữ liệu (đồng thời vô hiệu hóa cờ default của các địa ít cũ nếu địa chỉ mới là mặc định).
 *   **Tệp tin xử lý chính:** `AddressFragment.java` & `AddAddressFragment.java`
 *   **Sự liên kết với Model và Adapter:**
     *   **Sử dụng Model:**
@@ -105,15 +113,19 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
 *   **Sự kiện UI (Click nút):** Người dùng điền đầy đủ thông tin thẻ và nhấn nút **"Add Card"** (`btnAddCard`).
 *   **Chi tiết các hàm được gọi & Vai trò:**
     1.  `saveCardToFirestore()`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/AddCardFragment.java`
         *   **Chức năng:** Thu thập thông tin thẻ từ UI, kiểm tra tính hợp lệ của đầu vào đầu vào và kích hoạt quy trình mã hóa Stripe.
         *   **Vai trò:** Điểm khởi đầu kiểm soát dữ liệu trước khi gửi đi, đảm bảo định dạng số thẻ, mã bảo mật và ngày hết hạn hợp lệ.
     2.  `stripe.createCardToken(CardParams cardParams, ApiResultCallback<Token> callback)`
+        *   **Vị trí file:** SDK của Stripe, được gọi tại `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/AddCardFragment.java`
         *   **Chức năng:** Gửi thông tin thẻ thô lên máy chủ Stripe trực tiếp từ client để đổi lấy token bảo mật.
         *   **Vai trò:** Bảo vệ thông tin nhạy cảm của khách hàng bằng cách mã hóa ở cấp độ thiết bị, không để lộ thông tin thẻ cho máy chủ của ứng dụng.
     3.  `stripeCardApiClient.createCardPaymentMethod(CreateCardPaymentMethodRequest request, Callback callback)`
+        *   **Vị trí file:** Định nghĩa tại `app/src/main/java/com/example/tech_store_mobile/utils/StripeCardApiClient.java` (được gọi từ `AddCardFragment.java`)
         *   **Chức năng:** Gửi token Stripe vừa tạo lên backend để đăng ký và lưu phương thức thanh toán cho khách hàng trên Stripe Customer.
         *   **Vai trò:** Lưu giữ phương thức thanh toán an toàn để tái sử dụng cho các lần thanh toán sau mà không cần nhập lại thẻ.
     4.  `persistPaymentMethod(String userId, CreateCardPaymentMethodResponse response, ...)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/AddCardFragment.java`
         *   **Chức năng:** Lưu thông tin thẻ đã che mặt nạ (`last4`, `brand`, `expiryDate`) vào Firestore collection `payment_methods`.
         *   **Vai trò:** Giúp ứng dụng hiển thị danh sách các thẻ đã lưu của người dùng trên giao diện để họ chọn lựa thanh toán nhanh.
 *   **Tệp tin xử lý chính:** `AddCardFragment.java` & `PaymentMethodFragment.java`
@@ -136,7 +148,10 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
 
 *   **Sự kiện UI (Kích hoạt tự động):** Gọi ngay khi các tác vụ thanh toán, lưu địa chỉ hoặc thêm thẻ thành công.
 *   **Chi tiết các hàm được gọi & Vai trò:**
-    *   `showSuccessDialog()`
+    *   `showSuccessDialog()` / `showPaymentSuccessDialog()`
+        *   **Vị trí file:**
+            *   `showPaymentSuccessDialog()`: `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/CheckoutFragment.java`
+            *   `showSuccessDialog()`: `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/AddAddressFragment.java` và `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/AddCardFragment.java`
         *   **Chức năng:** Khởi tạo và thiết lập thông số hiển thị cho popup Dialog thành công.
         *   **Vai trò:** Cung cấp phản hồi thị giác rõ ràng cho người dùng rằng hành động của họ đã được hệ thống lưu trữ thành công, đồng thời hướng dẫn bước điều hướng tiếp theo (Ví dụ: bấm để quay về trang chủ).
 *   **Tệp tin xử lý chính:** `CheckoutFragment.java`, `AddAddressFragment.java`, `AddCardFragment.java`
@@ -155,9 +170,11 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
 *   **Sự kiện UI (Mở màn hình):** Người dùng truy cập tab **"My Orders"** từ Fragment tài khoản cá nhân.
 *   **Chi tiết các hàm được gọi & Vai trò:**
     1.  `setupViewPager()`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/MyOrdersFragment.java`
         *   **Chức năng:** Khởi tạo bộ chuyển đổi tab bằng ViewPager2.
         *   **Vai trò:** Quản lý vòng đời và chuyển đổi mượt mà giữa hai phân mảnh: Ongoing (Đang thực hiện) và Completed Orders (Đơn hàng đã hoàn thành).
     2.  `loadOrders()`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/OrdersListFragment.java`
         *   **Chức năng:** Thực hiện truy vấn danh sách đơn hàng từ Firestore.
         *   **Vai trò:** Tải toàn bộ đơn hàng của user hiện tại, tiến hành lọc phân loại theo thuộc tính `status` và sắp xếp theo ngày đặt giảm dần để hiển thị lên RecyclerView.
 *   **Tệp tin xử lý chính:** `MyOrdersFragment.java` & `OrdersListFragment.java`
@@ -180,9 +197,11 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
 *   **Sự kiện UI (Click nút):** Người dùng nhấn nút **"Track Order"** trên thẻ đơn hàng.
 *   **Chi tiết các hàm được gọi & Vai trò:**
     1.  `loadOrderData()`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/TrackOrderFragment.java`
         *   **Chức năng:** Tải thông tin chi tiết của đơn hàng cụ thể từ Firestore theo `orderId`.
         *   **Vai trò:** Cung cấp nguồn dữ liệu để hiển thị thông tin người nhận, địa chỉ giao hàng và trạng thái hiện tại trên UI.
     2.  `updateTimeline(String currentStatus)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/TrackOrderFragment.java`
         *   **Chức năng:** Cập nhật trạng thái hiển thị của các bước trên timeline dựa trên trạng thái của đơn hàng.
         *   **Vai trò:** Điều khiển giao diện timeline (đường nối, màu sắc nút chấm tròn) phản ánh chính xác tiến độ vận chuyển thực tế (Packing $\rightarrow$ Picked $\rightarrow$ In Transit $\rightarrow$ Delivered $\rightarrow$ Completed).
 *   **Tệp tin xử lý chính:** `OrdersListFragment.java` & `TrackOrderFragment.java`
@@ -200,12 +219,15 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
 *   **Sự kiện UI (Click nút):** Người dùng nhấn nút **"Leave Review"** trên thẻ sản phẩm của đơn hàng đã hoàn thành.
 *   **Chi tiết các hàm được gọi & Vai trò:**
     1.  `onLeaveReview(Order order, OrderItem item)`
+        *   **Vị trí file:** Được khai báo trong Interface `OnOrderActionListener` tại `app/src/main/java/com/example/tech_store_mobile/adapters/OrderAdapter.java` và triển khai tại `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/OrdersListFragment.java`
         *   **Chức năng:** Kiểm tra trạng thái đánh giá của sản phẩm trong đơn hàng.
         *   **Vai trò:** Quyết định xem sẽ mở BottomSheet viết đánh giá mới (nếu chưa đánh giá) hay mở màn hình xem danh sách các đánh giá cũ của sản phẩm đó.
     2.  `submitReview()`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/LeaveReviewBottomSheet.java`
         *   **Chức năng:** Kiểm tra dữ liệu đầu vào của đánh giá (số sao, comment) và chuẩn bị ghi.
         *   **Vai trò:** Đảm bảo khách hàng phải chọn ít nhất 1 sao trước khi gửi đánh giá lên hệ thống.
     3.  `btnSubmitReview(String userId, float rating, String comment)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/LeaveReviewBottomSheet.java`
         *   **Chức năng:** Thực thi Firestore Transaction cập nhật cơ sở dữ liệu.
         *   **Vai trò:** Đóng gói Model `Review`, gọi Firestore Transaction tính điểm trung bình sản phẩm và cập nhật trạng thái đơn hàng.
 *   **Tệp tin xử lý chính:** `OrdersListFragment.java` & `LeaveReviewBottomSheet.java`
@@ -223,9 +245,11 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
 *   **Sự kiện UI (Mở màn hình & Nhập tin nhắn):** Người dùng truy cập phân hệ CSKH, nhập tin nhắn văn bản và nhấn nút gửi (`btnAction`).
 *   **Chi tiết các hàm được gọi & Vai trò:**
     1.  `listenForMessages()`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/CustomerServiceFragment.java`
         *   **Chức năng:** Đăng ký Snapshot Listener lắng nghe các tin nhắn trong phòng chat cụ thể.
         *   **Vai trò:** Duy trì kết nối realtime để nhận tin nhắn mới từ Admin ngay lập tức và tự động xóa số tin nhắn chưa đọc của User.
     2.  `sendMessage(String content)`
+        *   **Vị trí file:** `app/src/main/java/com/example/tech_store_mobile/ui/fragments/main/CustomerServiceFragment.java`
         *   **Chức năng:** Thực hiện gửi tin nhắn lên Firestore.
         *   **Vai trò:** Dùng WriteBatch tạo tin nhắn mới và cập nhật thông tin tổng hợp của phòng chat (tin nhắn cuối, thời gian cập nhật, tăng bộ đếm tin chưa đọc của Admin).
 *   **Tệp tin xử lý chính:** `CustomerServiceFragment.java`
