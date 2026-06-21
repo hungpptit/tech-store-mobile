@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginTop="20dp">
+        >
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -53,15 +53,7 @@
                         android:textSize="14sp"
                         android:textColor="#FFFFFF"/> </LinearLayout>
 
-                    <ImageView
-                        android:id="@+id/btn_notification"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:contentDescription="@string/notifications"
-                        android:src="@drawable/notification"
-                        /> </RelativeLayout>
+                </RelativeLayout>
 
                 <EditText
                     android:id="@+id/search_bar_home"

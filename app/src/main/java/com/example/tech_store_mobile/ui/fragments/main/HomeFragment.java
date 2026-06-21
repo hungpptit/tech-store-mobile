@@ -100,6 +100,17 @@ public class HomeFragment extends Fragment {
         loadNewProductsFromFirebase();
         loadBestSellersFromFirebase();
 
+        // Setup search bar click to navigate to Search fragment
+        View searchBarHome = view.findViewById(R.id.search_bar_home);
+        if (searchBarHome != null) {
+            searchBarHome.setOnClickListener(v -> {
+                androidx.viewpager.widget.ViewPager viewPager = requireActivity().findViewById(R.id.view_pager);
+                if (viewPager != null) {
+                    viewPager.setCurrentItem(1);
+                }
+            });
+        }
+
         return view;
     }
 
