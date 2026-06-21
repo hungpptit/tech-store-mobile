@@ -570,7 +570,12 @@ public class CheckoutFragment extends Fragment {
                     return;
                 }
 
-                Toast.makeText(requireContext(), "Thanh toán chưa hoàn tất: " + (status != null ? status : "unknown"), Toast.LENGTH_SHORT).show();
+                showFailureDialog(
+                        "Thanh toán thất bại",
+                        "Thanh toán chưa hoàn tất: " + (status != null ? status : "unknown"),
+                        "Thử lại",
+                        null
+                );
             }
 
             @Override
@@ -581,7 +586,12 @@ public class CheckoutFragment extends Fragment {
 
                 btnPlaceOrder.setEnabled(true);
                 btnPlaceOrder.setText(R.string.checkout_place_order);
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                showFailureDialog(
+                        "Thanh toán thất bại",
+                        message,
+                        "Thử lại",
+                        null
+                );
             }
         });
     }
@@ -991,7 +1001,7 @@ public class CheckoutFragment extends Fragment {
             Log.e(TAG, "Stock reservation failed", e);
             btnPlaceOrder.setEnabled(true);
             btnPlaceOrder.setText(R.string.checkout_place_order);
-            showNotificationDialog(
+            showFailureDialog(
                     "Hết hàng",
                     e.getMessage(),
                     "Quay lại giỏ hàng",
@@ -1064,7 +1074,12 @@ public class CheckoutFragment extends Fragment {
                     return;
                 }
 
-                Toast.makeText(requireContext(), "Thanh toán chưa hoàn tất: " + (status != null ? status : "unknown"), Toast.LENGTH_SHORT).show();
+                showFailureDialog(
+                        "Thanh toán thất bại",
+                        "Thanh toán chưa hoàn tất: " + (status != null ? status : "unknown"),
+                        "Thử lại",
+                        null
+                );
                 if (currentReservationId != null) {
                     releaseReservationImmediately(currentReservationId);
                     currentReservationId = null;
@@ -1079,7 +1094,12 @@ public class CheckoutFragment extends Fragment {
 
                 btnPlaceOrder.setEnabled(true);
                 btnPlaceOrder.setText(R.string.checkout_place_order);
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                showFailureDialog(
+                        "Thanh toán thất bại",
+                        message,
+                        "Thử lại",
+                        null
+                );
                 if (currentReservationId != null) {
                     releaseReservationImmediately(currentReservationId);
                     currentReservationId = null;
@@ -1227,17 +1247,17 @@ public class CheckoutFragment extends Fragment {
         .addOnFailureListener(e -> Log.e(TAG, "Failed to release reservation immediately: " + reservationId, e));
     }
 
-    private void showNotificationDialog(String titleText, String messageText, String buttonText, Runnable onButtonClick) {
+    private void showFailureDialog(String titleText, String messageText, String buttonText, Runnable onButtonClick) {
         if (!isAdded()) {
             return;
         }
         Dialog dialog = new Dialog(requireContext());
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_success);
+        dialog.setContentView(R.layout.dialog_failure);
 
-        TextView title = dialog.findViewById(R.id.tv_success_title);
-        TextView message = dialog.findViewById(R.id.tv_success_message);
-        AppCompatButton btnThanks = dialog.findViewById(R.id.btn_thanks);
+        TextView title = dialog.findViewById(R.id.tv_failure_title);
+        TextView message = dialog.findViewById(R.id.tv_failure_message);
+        AppCompatButton btnAction = dialog.findViewById(R.id.btn_action);
 
         if (title != null) {
             title.setText(titleText);
@@ -1245,9 +1265,9 @@ public class CheckoutFragment extends Fragment {
         if (message != null) {
             message.setText(messageText);
         }
-        if (btnThanks != null) {
-            btnThanks.setText(buttonText);
-            btnThanks.setOnClickListener(v -> {
+        if (btnAction != null) {
+            btnAction.setText(buttonText);
+            btnAction.setOnClickListener(v -> {
                 dialog.dismiss();
                 if (onButtonClick != null) {
                     onButtonClick.run();

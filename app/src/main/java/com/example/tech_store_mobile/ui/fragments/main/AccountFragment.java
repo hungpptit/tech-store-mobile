@@ -43,7 +43,7 @@ public class AccountFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        ImageView btnBack = view.findViewById(R.id.btn_back_search);
+        ImageView btnBack = view.findViewById(R.id.btn_back_account);
         accountContentContainer = view.findViewById(R.id.accountContentContainer);
         accountGuestState = view.findViewById(R.id.accountGuestState);
         MaterialButton btnAccountSignIn = view.findViewById(R.id.btnAccountSignIn);
