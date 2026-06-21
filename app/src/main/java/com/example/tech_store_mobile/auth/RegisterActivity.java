@@ -94,7 +94,8 @@ public class RegisterActivity extends AppCompatActivity {
         // 1. Xử lý cho ô Username (Hết trống là hết lỗi)
         edtRegisterName.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -104,13 +105,15 @@ public class RegisterActivity extends AppCompatActivity {
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         });
 
         // 2. Xử lý cho ô Email (Đã có - mình bổ sung thêm phần xóa lỗi khi gõ)
         edtRegisterEmail.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -128,13 +131,15 @@ public class RegisterActivity extends AppCompatActivity {
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         });
 
         // 3. Xử lý cho ô Password (Hết trống là hết lỗi)
         edtRegisterPassword.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -144,7 +149,8 @@ public class RegisterActivity extends AppCompatActivity {
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         });
     }
 
@@ -187,7 +193,8 @@ public class RegisterActivity extends AppCompatActivity {
             isValid = false;
         }
 
-        if (!isValid) return;
+        if (!isValid)
+            return;
 
         setLoading(true);
         mAuth.createUserWithEmailAndPassword(email, password)
@@ -203,9 +210,11 @@ public class RegisterActivity extends AppCompatActivity {
                                         @Override
                                         public void onSuccess() {
                                             FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
-                                            Toast.makeText(RegisterActivity.this, "Account created successfully!", Toast.LENGTH_SHORT).show();
+                                            Toast.makeText(RegisterActivity.this, "Account created successfully!",
+                                                    Toast.LENGTH_SHORT).show();
                                             Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
-                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                            intent.addFlags(
+                                                    Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                             startActivity(intent);
                                             finish();
                                         }
@@ -213,16 +222,19 @@ public class RegisterActivity extends AppCompatActivity {
                                         @Override
                                         public void onFailure(Exception exception) {
                                             FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
-                                            Toast.makeText(RegisterActivity.this, "Saved auth account, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                                            Toast.makeText(RegisterActivity.this,
+                                                    "Saved auth account, but failed to sync profile: "
+                                                            + exception.getMessage(),
+                                                    Toast.LENGTH_LONG).show();
                                             Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
-                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                            intent.addFlags(
+                                                    Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                             startActivity(intent);
                                             finish();
                                         }
-                                    }
-                            );
+                                    });
                         } else {
-                                    FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
+                            FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                             Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
                             Intent intent = new Intent(this, MainActivity.class);
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -251,8 +263,7 @@ public class RegisterActivity extends AppCompatActivity {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         handleGoogleSignInResult(result.getData());
                     }
-                }
-        );
+                });
 
         String webClientId = resolveDefaultWebClientId();
         if (webClientId != null) {
@@ -270,7 +281,8 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void startGoogleSignIn() {
-        if (googleSignInClient == null) return;
+        if (googleSignInClient == null)
+            return;
         googleSignInClient.signOut().addOnCompleteListener(task -> {
             googleSignInLauncher.launch(googleSignInClient.getSignInIntent());
         });
@@ -293,8 +305,7 @@ public class RegisterActivity extends AppCompatActivity {
                         account.getIdToken(),
                         account.getDisplayName(),
                         email,
-                        account.getPhotoUrl() != null ? account.getPhotoUrl().toString() : null
-                );
+                        account.getPhotoUrl() != null ? account.getPhotoUrl().toString() : null);
             }
         } catch (ApiException e) {
             Toast.makeText(this, "Google Error", Toast.LENGTH_SHORT).show();
@@ -317,7 +328,8 @@ public class RegisterActivity extends AppCompatActivity {
                                     public void onSuccess() {
                                         FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
                                         Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
-                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                        intent.addFlags(
+                                                Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                         startActivity(intent);
                                         finish();
                                     }
@@ -325,20 +337,24 @@ public class RegisterActivity extends AppCompatActivity {
                                     @Override
                                     public void onFailure(Exception exception) {
                                         FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
-                                        Toast.makeText(RegisterActivity.this, "Saved Google sign-in, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(RegisterActivity.this,
+                                                "Saved Google sign-in, but failed to sync profile: "
+                                                        + exception.getMessage(),
+                                                Toast.LENGTH_LONG).show();
                                         Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
-                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                        intent.addFlags(
+                                                Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                         startActivity(intent);
                                         finish();
                                     }
-                                }
-                        );
+                                });
                     }
                 });
     }
 
     private void setLoading(boolean isLoading) {
-        if (btnSignUp == null) return;
+        if (btnSignUp == null)
+            return;
         btnSignUp.setEnabled(!isLoading);
         btnSignUp.setText(isLoading ? "Loading..." : "Create Account");
         btnSignUp.setAlpha(isLoading ? 0.7f : 1f);

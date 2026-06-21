@@ -234,8 +234,33 @@ public class SearchFragment extends Fragment {
         searchResultList.clear();
 
         for (Product p : allProducts) {
+            boolean matches = false;
+
+            // 1. Kiểm tra tên sản phẩm
             String name = (p.getProductName() != null) ? p.getProductName().toLowerCase() : "";
-            if (name.contains(queryLower)) {
+            if (name.contains(queryLower)) matches = true;
+
+            // 2. Kiểm tra từ khóa tìm kiếm (searchKeywords)
+            if (!matches && p.getSearchKeywords() != null) {
+                for (String kw : p.getSearchKeywords()) {
+                    if (kw.toLowerCase().contains(queryLower)) {
+                        matches = true;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Kiểm tra thương hiệu (brand)
+            if (!matches && p.getBrand() != null) {
+                if (p.getBrand().toLowerCase().contains(queryLower)) matches = true;
+            }
+
+            // 4. Kiểm tra mô tả (description)
+            if (!matches && p.getDescription() != null) {
+                if (p.getDescription().toLowerCase().contains(queryLower)) matches = true;
+            }
+
+            if (matches) {
                 searchResultList.add(p);
             }
         }
