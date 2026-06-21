@@ -1,70 +1,87 @@
 package com.example.tech_store_mobile.adapters;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
 import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
+
 import java.util.List;
 
-public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.SearchViewHolder> {
+public class SearchAdapter extends BaseAdapter {
+    private Context context;
     private List<Product> productList;
     private OnItemClickListener listener;
 
-    public interface OnItemClickListener { void onItemClick(Product product); }
+    public interface OnItemClickListener {
+        void onItemClick(Product product);
+    }
 
-    public SearchAdapter(List<Product> productList, OnItemClickListener listener) {
+    public SearchAdapter(Context context, List<Product> productList, OnItemClickListener listener) {
+        this.context = context;
         this.productList = productList;
         this.listener = listener;
     }
 
-    @NonNull
     @Override
-    public SearchViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_search_result, parent, false);
-        return new SearchViewHolder(view);
+    public int getCount() {
+        return productList != null ? productList.size() : 0;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull SearchViewHolder holder, int position) {
+    public Object getItem(int position) {
+        return productList.get(position);
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        SearchViewHolder holder;
+        if (convertView == null) {
+            convertView = LayoutInflater.from(context).inflate(R.layout.item_search_result, parent, false);
+            holder = new SearchViewHolder(convertView);
+            convertView.setTag(holder);
+        } else {
+            holder = (SearchViewHolder) convertView.getTag();
+        }
+
         Product product = productList.get(position);
         holder.tvName.setText(product.getProductName());
         holder.tvPrice.setText("$ " + (product.getFinalPrice() != null ? product.getFinalPrice() : 0.0));
 
-        Glide.with(holder.itemView.getContext())
+        Glide.with(context)
                 .load(product.getImageUrl())
                 .placeholder(R.drawable.watch)
                 .error(R.drawable.watch)
                 .into(holder.imgProduct);
 
-        // Xử lý Click: Nhấn vào bất kỳ đâu trên item đều mở chi tiết
-        View.OnClickListener clickHandler = v -> {
+        // Xử lý Click được thực hiện qua ListView.setOnItemClickListener hoặc trực tiếp tại đây
+        convertView.setOnClickListener(v -> {
             if (listener != null) listener.onItemClick(product);
-        };
+        });
 
-        holder.itemView.setOnClickListener(clickHandler);
-        if (holder.imgArrow != null) {
-            holder.imgArrow.setOnClickListener(clickHandler);
-        }
+        return convertView;
     }
 
-    @Override
-    public int getItemCount() { return productList != null ? productList.size() : 0; }
-
-    public static class SearchViewHolder extends RecyclerView.ViewHolder {
+    static class SearchViewHolder {
         ImageView imgProduct, imgArrow;
         TextView tvName, tvPrice;
-        public SearchViewHolder(@NonNull View itemView) {
-            super(itemView);
-            imgProduct = itemView.findViewById(R.id.imgProductSearch);
-            tvName = itemView.findViewById(R.id.tvProductNameSearch);
-            tvPrice = itemView.findViewById(R.id.tvProductPriceSearch);
-            imgArrow = itemView.findViewById(R.id.imgArrow); // Khớp ID với XML của bạn
+
+        public SearchViewHolder(View view) {
+            imgProduct = view.findViewById(R.id.imgProductSearch);
+            tvName = view.findViewById(R.id.tvProductNameSearch);
+            tvPrice = view.findViewById(R.id.tvProductPriceSearch);
+            imgArrow = view.findViewById(R.id.imgArrow);
         }
     }
 }

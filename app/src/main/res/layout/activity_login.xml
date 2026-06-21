@@ -227,7 +227,7 @@
                 <ImageView
                     android:layout_width="80dp"
                     android:layout_height="80dp"
-                    android:src="@drawable/check_circle"
+                    android:src="@drawable/ic_success_check"
                     app:tint="#4CAF50" />
 
                 <TextView

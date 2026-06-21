@@ -56,7 +56,6 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-
         initViews();
         configureGoogleSignIn();
         setupListeners();
@@ -83,11 +82,11 @@ public class LoginActivity extends AppCompatActivity {
 
         findViewById(R.id.btnGoogleLogin).setOnClickListener(v -> startGoogleSignIn());
 
-        findViewById(R.id.tvForgotPassword).setOnClickListener(v ->
-                startActivity(new Intent(this, ForgotPasswordActivity.class)));
+        findViewById(R.id.tvForgotPassword)
+                .setOnClickListener(v -> startActivity(new Intent(this, ForgotPasswordActivity.class)));
 
-        findViewById(R.id.tvGoToRegister).setOnClickListener(v ->
-                startActivity(new Intent(this, RegisterActivity.class)));
+        findViewById(R.id.tvGoToRegister)
+                .setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
 
         if (btnThanks != null) {
             btnThanks.setOnClickListener(v -> {
@@ -103,7 +102,8 @@ public class LoginActivity extends AppCompatActivity {
     private void setupRealTimeValidation() {
         edtLoginEmail.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -120,7 +120,8 @@ public class LoginActivity extends AppCompatActivity {
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         });
     }
 
@@ -153,12 +154,14 @@ public class LoginActivity extends AppCompatActivity {
             isValid = false;
         }
 
-        // 4. Nếu có bất kỳ ô nào sai (isValid = false) thì dừng lại hiện lỗi, không gọi Firebase
+        // 4. Nếu có bất kỳ ô nào sai (isValid = false) thì dừng lại hiện lỗi, không gọi
+        // Firebase
         if (!isValid) {
             return;
         }
 
-        // 5. Nếu gõ đúng định dạng hết rồi mới bắt đầu gọi Firebase để check tài khoản thật
+        // 5. Nếu gõ đúng định dạng hết rồi mới bắt đầu gọi Firebase để check tài khoản
+        // thật
         setLoading(true);
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
@@ -176,7 +179,8 @@ public class LoginActivity extends AppCompatActivity {
 
                         if (errorMessage != null && errorMessage.contains("password")) {
                             tipLoginPassword.setError("Invalid password. Please try again.");
-                        } else if (errorMessage != null && (errorMessage.contains("user") || errorMessage.contains("record"))) {
+                        } else if (errorMessage != null
+                                && (errorMessage.contains("user") || errorMessage.contains("record"))) {
                             tipLoginEmail.setError("Email not found. Please register first.");
                         } else {
                             tipLoginEmail.setError("Authentication failed.");
@@ -203,8 +207,7 @@ public class LoginActivity extends AppCompatActivity {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         handleGoogleSignInResult(result.getData());
                     }
-                }
-        );
+                });
 
         String webClientId = resolveDefaultWebClientId();
         if (webClientId != null) {
@@ -222,7 +225,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void startGoogleSignIn() {
-        if (googleSignInClient == null) return;
+        if (googleSignInClient == null)
+            return;
         googleSignInClient.signOut().addOnCompleteListener(task -> {
             googleSignInLauncher.launch(googleSignInClient.getSignInIntent());
         });
@@ -245,8 +249,7 @@ public class LoginActivity extends AppCompatActivity {
                         account.getIdToken(),
                         account.getDisplayName(),
                         email,
-                        account.getPhotoUrl() != null ? account.getPhotoUrl().toString() : null
-                );
+                        account.getPhotoUrl() != null ? account.getPhotoUrl().toString() : null);
             }
         } catch (ApiException e) {
             Toast.makeText(this, "Google Error", Toast.LENGTH_SHORT).show();
@@ -274,11 +277,13 @@ public class LoginActivity extends AppCompatActivity {
                                     @Override
                                     public void onFailure(Exception exception) {
                                         FcmTokenSyncHelper.syncCurrentTokenIfLoggedIn();
-                                        Toast.makeText(LoginActivity.this, "Saved Google sign-in, but failed to sync profile: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(LoginActivity.this,
+                                                "Saved Google sign-in, but failed to sync profile: "
+                                                        + exception.getMessage(),
+                                                Toast.LENGTH_LONG).show();
                                         showSuccessDialog();
                                     }
-                                }
-                        );
+                                });
                     }
                 });
     }

@@ -20,8 +20,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import android.widget.ListView;
+import android.widget.AdapterView;
 
 import com.example.tech_store_mobile.Model.Product;
 import com.example.tech_store_mobile.R;
@@ -42,7 +42,7 @@ public class SearchFragment extends Fragment {
 
     private EditText edtSearchActive;
     private LinearLayout layoutRecentSearches, layoutEmptySearch;
-    private RecyclerView rvRecentSearches, rvSearchResults;
+    private ListView rvRecentSearches, rvSearchResults;
     private TextView tvClearAll;
     private ImageView btnBackSearch;
 
@@ -162,9 +162,8 @@ public class SearchFragment extends Fragment {
         rvSearchResults = view.findViewById(R.id.rv_search_results);
         tvClearAll = view.findViewById(R.id.tv_clear_all);
 
-        // 1. Setup Adapter Kết quả (Dạng list ngang)
-        rvSearchResults.setLayoutManager(new LinearLayoutManager(getContext()));
-        searchAdapter = new SearchAdapter(searchResultList, product -> {
+        // 1. Setup Adapter Kết quả
+        searchAdapter = new SearchAdapter(getContext(), searchResultList, product -> {
             if (product == null || TextUtils.isEmpty(product.getProductId())) {
                 Toast.makeText(getContext(), "Lỗi: Không tìm thấy ID sản phẩm", Toast.LENGTH_SHORT).show();
                 return;
@@ -180,9 +179,8 @@ public class SearchFragment extends Fragment {
         });
         rvSearchResults.setAdapter(searchAdapter);
 
-        // 2. Setup Adapter Lịch sử (Có nút x xóa từng mục)
-        rvRecentSearches.setLayoutManager(new LinearLayoutManager(getContext()));
-        historyAdapter = new RecentSearchAdapter(historyList, new RecentSearchAdapter.OnHistoryClickListener() {
+        // 2. Setup Adapter Lịch sử
+        historyAdapter = new RecentSearchAdapter(getContext(), historyList, new RecentSearchAdapter.OnHistoryClickListener() {
             @Override
             public void onKeywordClick(String keyword) {
                 edtSearchActive.setText(keyword);
@@ -193,7 +191,7 @@ public class SearchFragment extends Fragment {
             @Override
             public void onDeleteClick(int position) {
                 historyList.remove(position);
-                historyAdapter.notifyItemRemoved(position);
+                historyAdapter.notifyDataSetChanged();
                 saveSearchHistoryToDisk();
                 if (historyList.isEmpty()) layoutRecentSearches.setVisibility(View.GONE);
             }

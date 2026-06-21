@@ -1,0 +1,84 @@
+CHƯƠNG II. THIẾT KẾ HỆ THỐNG
+
+1. Lược đồ thiết kế cơ sở dữ liệu (ERD/Schema)
+
+Hệ thống TechStoreMobile sử dụng cơ sở dữ liệu NoSQL Firebase Firestore. Cấu trúc dữ liệu được thiết kế theo hướng phi tập trung (Denormalization) để tối ưu hóa tốc độ đọc và khả năng đồng bộ thời gian thực.
+
+[Gợi ý: Chèn sơ đồ PlantUML đã vẽ vào đây]
+
+Mối quan hệ chính:
+- Liên kết tham chiếu (Reference): Sử dụng các ID liên kết giữa các Collection (nét đứt).
+- Liên kết sở hữu (Sub-collection): Messages nằm trong Rooms (nét liền) thể hiện sự gắn kết chặt chẽ về mặt vật lý trong database.
+
+2. Mô hình dữ liệu vật lý và chi tiết các cấu trúc dữ liệu
+
+Việc phân chia các Collection thành hai nhóm giúp quản lý logic hệ thống rõ ràng hơn: Nhóm dữ liệu cốt lõi (Master Data) và Nhóm dữ liệu phát sinh theo nghiệp vụ (Transactional Data).
+
+2.1. Cấu trúc Collection: Users, Products, Categories
+Đây là các thực thể nền tảng lưu trữ thông tin cơ sở của hệ thống.
+
+* Collection: users
+| Tên trường | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| userId | String (PK) | UID định danh tài khoản từ Firebase Auth. |
+| role | String | Vai trò: user (khách hàng) hoặc admin. |
+| fullName | String | Tên đầy đủ hiển thị trên ứng dụng. |
+| avatarUrl | String | Link ảnh đại diện người dùng. |
+| fcmToken | String | Token duy nhất để gửi thông báo FCM. |
+| createdAt | Timestamp | Ngày tạo tài khoản. |
+
+* Collection: products
+| Tên trường | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| productId | String (PK) | Mã định danh sản phẩm. |
+| categoryId | String (Ref) | Liên kết danh mục sản phẩm. |
+| productName | String | Tên thiết bị/phụ kiện. |
+| finalPrice | Number | Giá bán cuối cùng (sau khuyến mãi). |
+| stockQuantity | Number | Số lượng hiện có trong kho. |
+| searchKeywords | Array<String> | Mảng từ khóa phục vụ tìm kiếm nhanh (Search SEO). |
+| isNew/isBestSeller| Boolean | Đánh dấu để hiển thị trên Dashboard. |
+
+* Collection: categories
+| Tên trường | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| categoryId | String (PK) | Mã danh mục. |
+| categoryName | String | Tên (vd: Laptop, Watch...). |
+| imageUrl | String | Icon hiển thị của danh mục. |
+
+2.2. Cấu trúc Collection: Orders, Favorites (Saved_Items), Carts, Messages
+Đây là các thực thể phát sinh từ hành vi và tương tác của người dùng trên ứng dụng.
+
+* Collection: orders
+| Tên trường | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| orderId | String (PK) | Mã đơn đặt hàng. |
+| userId | String (Ref) | Khách hàng thực hiện đơn hàng. |
+| items | Array<Map> | Danh sách sản phẩm mua (ghi đè Snapshot giá/tên). |
+| status | String | Trạng thái (Packing/In Transit/Delivered). |
+| summary | Map | Tổng hợp tài chính (subTotal, vat, totalAmount). |
+| shippingAddress | Map | Địa chỉ giao hàng tại thời điểm mua. |
+
+* Collection: saved_items (Favorites)
+| Tên trường | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| docId | String (PK) | Kết hợp userId_productId để đảm bảo duy nhất. |
+| userId | String | ID người dùng yêu thích sản phẩm. |
+| productId | String | ID sản phẩm được đánh dấu. |
+
+* Collection: cart
+| Tên trường | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| userId | String (PK) | Sử dụng UID người dùng làm key. |
+| items | Array<Map> | Lưu productId, số lượng và thông tin phụ. |
+| updatedAt | Timestamp | Thời điểm cập nhật giỏ hàng cuối cùng. |
+
+* Sub-collection: messages (Dưới Room của từng User)
+| Tên trường | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| senderId | String | Người gửi (User hoặc Admin). |
+| content | String | Nội dung tin nhắn chat. |
+| type | String | Định dạng: text, image. |
+| createdAt | Timestamp | Thời gian gửi thực tế. |
+
+---
+Ghi chú: Toàn bộ cấu trúc được thiết kế để phù hợp với kiến trúc MVVM và tối ưu hóa chi phí truy vấn trên hạ tầng Cloud Firestore.

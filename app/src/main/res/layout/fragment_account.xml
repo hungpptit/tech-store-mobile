@@ -14,46 +14,38 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginBottom="20dp"
-            android:layout_marginTop="30dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp">
 
             <ImageView
-                android:id="@+id/btn_back_search"
+                android:id="@+id/btn_back_account"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:contentDescription="@string/back"
-                tools:ignore="MissingContentDescription"
-                android:src="@drawable/vector" />
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_back" />
 
             <TextView
                 android:id="@+id/tvAccountTitle"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:maxLines="1"
-                android:maxWidth="220dp"
+                android:layout_centerInParent="true"
                 android:text="@string/nav_account"
                 android:textColor="@android:color/black"
                 android:textSize="20sp"
-                android:textStyle="bold"
-                tools:ignore="RelativeOverlap,TextViewOverlap,TextViewEdits" />
+                android:textStyle="bold" />
 
             <ImageView
                 android:id="@+id/btn_notification"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
                 android:contentDescription="@string/notifications"
                 android:src="@drawable/notification" />
-        </LinearLayout>
+        </RelativeLayout>
 
         <LinearLayout
             android:id="@+id/accountContentContainer"

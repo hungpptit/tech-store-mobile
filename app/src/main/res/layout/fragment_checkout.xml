@@ -26,8 +26,7 @@
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="22dp">
+                android:layout_marginBottom="20dp">
 
                 <ImageView
                     android:id="@+id/btn_back_checkout"
@@ -36,16 +35,12 @@
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
                     android:contentDescription="@string/checkout_back_content_description"
-                    android:src="@drawable/vector" />
+                    android:src="@drawable/ic_back" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:layout_marginStart="48dp"
-                    android:layout_marginEnd="48dp"
-                    android:layout_toEndOf="@id/btn_back_checkout"
-                    android:layout_toStartOf="@id/btn_notification"
+                    android:layout_centerInParent="true"
                     android:text="@string/checkout_title"
                     android:textColor="@android:color/black"
                     android:textSize="20sp"
@@ -418,9 +413,3 @@
         app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-
-
-
-
