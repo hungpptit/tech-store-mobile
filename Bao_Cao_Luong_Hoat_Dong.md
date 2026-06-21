@@ -25,6 +25,12 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Thực hiện kiểm tra tồn kho và trừ kho tạm thời trong một Firestore Transaction.
         *   **Vai trò:** Giữ hàng cho người dùng trong **5 phút** bằng cách đẩy Model `StockReservation` lên Firestore, tránh việc người khác mua mất sản phẩm trong lúc khách hàng đang điền thông tin thanh toán (tránh lỗi bán quá đà - overselling).
 *   **Tệp tin xử lý chính:** `CheckoutFragment.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/fragment_checkout.xml`
+    *   **Layout gốc (Root Layout):** `ConstraintLayout` làm gốc (chứa `NestedScrollView` cuộn nội dung và nút `MaterialButton` dán cố định dưới đáy màn hình).
+    *   **Layout con & Cấu trúc:** `LinearLayout` (định hướng Vertical) lồng bên trong `NestedScrollView` chứa các `RelativeLayout` (cho Toolbar), `MaterialCardView` (cho phần địa chỉ và chi tiết thanh toán).
+    *   **Thành phần UI sử dụng:** `RecyclerView` (danh sách checkout items), `TextView` (thông tin hóa đơn, tổng tiền, địa chỉ), `ImageView` (nút Back, icon bản đồ/thẻ), `MaterialButton` (`btnPlaceOrder` - đặt hàng).
+    *   **Mô tả thiết kế:** Sử dụng `ConstraintLayout` lồng trong `NestedScrollView` hỗ trợ cuộn màn hình. Bố cục chia rõ 3 phần: Thông tin địa chỉ nhận hàng (Top) bọc trong `MaterialCardView`, danh sách sản phẩm tóm tắt (RecyclerView ở giữa), chi tiết tiền thanh toán & phương thức thanh toán kèm nút Place Order (Bottom).
 *   **Sự liên kết với Model và Adapter:**
     *   **Giai đoạn Giỏ hàng trước đó:** Tại `CartFragment`, `CartAdapter.java` quản lý danh sách giỏ hàng thông qua Model `CartItem.java`. Khi bấm thanh toán, `CartFragment` sẽ thu thập các sản phẩm được chọn và truyền sang `CheckoutFragment`.
     *   **Sử dụng Model tại Checkout:**
@@ -62,6 +68,14 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Cộng trả lại số lượng tồn kho cho sản phẩm và giải phóng bản ghi giữ kho.
         *   **Vai trò:** Hoàn trả lại hàng cho kho ngay lập tức khi thanh toán thất bại để người dùng khác có thể mua, tránh lãng phí tồn kho.
 *   **Tệp tin xử lý chính:** `CheckoutFragment.java` & `StripePaymentApiClient.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/fragment_checkout.xml` (phần tích hợp chọn phương thức thanh toán) và `app/src/main/res/layout/fragment_payment_method.xml`.
+    *   **Layout gốc (Root Layout):** `ConstraintLayout` làm gốc cho cả 2 fragment (giúp tối ưu hóa giao diện phẳng, giảm phân cấp View).
+    *   **Layout con & Cấu trúc:**
+        - Trong `fragment_checkout.xml`: `MaterialCardView` chứa `LinearLayout` ngang hiển thị thông tin thẻ.
+        - Trong `fragment_payment_method.xml`: `NestedScrollView` chứa `LinearLayout` dọc bao gồm `RecyclerView` danh sách thẻ và nút `AppCompatButton` dán đáy.
+    *   **Thành phần UI sử dụng:** `TextView` (hiển thị số thẻ che cuối `**** **** **** 4242`), `ImageView` (icon nhãn hiệu Visa, Mastercard).
+    *   **Mô tả thiết kế:** Được tích hợp gọn gàng trong khu vực Bottom của màn hình checkout. Khi người dùng click sẽ hiển thị phương thức thanh toán hiện tại, cho phép chuyển sang chọn thẻ lưu sẵn.
 *   **Sự liên kết với Model và Adapter:**
     *   **Sử dụng Model:**
         *   `CreatePaymentIntentRequest.java` và `CreatePaymentIntentResponse.java`: Lớp Model để đóng gói dữ liệu JSON gửi lên backend Node.js (bao gồm `userId`, `orderId`, `total`, `paymentMethodId`) và tiếp nhận dữ liệu phản hồi trả về từ cổng Stripe (chứa trạng thái giao dịch, ID giao dịch).
@@ -93,6 +107,16 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Xử lý logic kiểm tra thông tin và lưu địa chỉ vào Firestore.
         *   **Vai trò:** Đóng gói thông tin thành Model `Address` và thực thi ghi dữ liệu (đồng thời vô hiệu hóa cờ default của các địa ít cũ nếu địa chỉ mới là mặc định).
 *   **Tệp tin xử lý chính:** `AddressFragment.java` & `AddAddressFragment.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/fragment_address.xml`, `app/src/main/res/layout/fragment_add_address.xml`, `app/src/main/res/layout/item_address.xml`
+    *   **Layout gốc (Root Layout):**
+        - `fragment_address.xml` & `fragment_add_address.xml`: `ConstraintLayout` làm gốc (chứa `NestedScrollView` cuộn trang).
+        - `item_address.xml` (tệp giao diện từng dòng địa chỉ): `MaterialCardView` làm gốc (thiết kế nổi khối và bo góc tròn).
+    *   **Layout con & Cấu trúc:** `LinearLayout` (Vertical) làm xương sống cho form nhập liệu trong `fragment_add_address.xml`.
+    *   **Thành phần UI sử dụng:** `RecyclerView` (danh sách địa chỉ), `Spinner` (tỉnh/thành, quận/huyện, xã/phường), `EditText` (nhập họ tên, SĐT, số nhà/tên đường), `SwitchCompat`/`CheckBox` (thiết lập mặc định), `MaterialButton` (Lưu địa chỉ).
+    *   **Mô tả thiết kế:**
+        - `fragment_address.xml` hiển thị danh sách các thẻ địa chỉ dạng CardView (`item_address.xml`) sử dụng `RecyclerView`.
+        - `fragment_add_address.xml` sử dụng `LinearLayout` (Vertical) bọc trong `NestedScrollView` cho phép nhập liệu dễ dàng. Các `Spinner` hành chính được xếp động nối tiếp nhau theo cấp từ Tỉnh $\rightarrow$ Huyện $\rightarrow$ Xã.
 *   **Sự liên kết với Model và Adapter:**
     *   **Sử dụng Model:**
         *   `Address.java` và `Address.AddressLocation`: Ánh xạ cấu trúc dữ liệu địa chỉ. Đối tượng `AddressLocation` lưu chi tiết phân cấp hành chính (mã/tên tỉnh, quận, phường).
@@ -129,6 +153,16 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Lưu thông tin thẻ đã che mặt nạ (`last4`, `brand`, `expiryDate`) vào Firestore collection `payment_methods`.
         *   **Vai trò:** Giúp ứng dụng hiển thị danh sách các thẻ đã lưu của người dùng trên giao diện để họ chọn lựa thanh toán nhanh.
 *   **Tệp tin xử lý chính:** `AddCardFragment.java` & `PaymentMethodFragment.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/fragment_payment_method.xml`, `app/src/main/res/layout/fragment_add_card.xml`, `app/src/main/res/layout/item_payment_method.xml`
+    *   **Layout gốc (Root Layout):**
+        - `fragment_payment_method.xml` & `fragment_add_card.xml`: `ConstraintLayout` làm gốc.
+        - `item_payment_method.xml` (từng dòng item thẻ): `RelativeLayout` làm gốc (cho phép chồng văn bản số thẻ, ngày hết hạn và logo hãng thẻ lên trên hình nền thẻ).
+    *   **Layout con & Cấu trúc:** `LinearLayout` (Vertical) bọc trong `NestedScrollView` của `fragment_add_card.xml` giúp tổ chức form nhập liệu.
+    *   **Thành phần UI sử dụng:** `RecyclerView` (danh sách thẻ đã lưu), `CardInputWidget` (hoặc các `EditText` cho số thẻ, hạn dùng, CVC từ Stripe SDK), `MaterialButton` (`btnAddCard` - thêm thẻ).
+    *   **Mô tả thiết kế:**
+        - `fragment_payment_method.xml` có cấu trúc danh sách cuộn dọc. Mỗi thẻ trong `item_payment_method.xml` được thiết kế giả lập hình ảnh chiếc thẻ tín dụng mini trực quan.
+        - `fragment_add_card.xml` sử dụng các trường nhập liệu thẻ an toàn chuẩn Stripe, kết hợp `TextInputLayout` hiển thị gợi ý và thông báo lỗi.
 *   **Sự liên kết với Model và Adapter:**
     *   **Sử dụng Model:**
         *   `PaymentMethod.java`: Model lưu thông tin thẻ Stripe đã được mã hóa an toàn (gồm `paymentId`, `cardNumber` đã che, `expiryDate`, `cardType`, `cardHolderName`, `isDefault`).
@@ -155,6 +189,12 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Khởi tạo và thiết lập thông số hiển thị cho popup Dialog thành công.
         *   **Vai trò:** Cung cấp phản hồi thị giác rõ ràng cho người dùng rằng hành động của họ đã được hệ thống lưu trữ thành công, đồng thời hướng dẫn bước điều hướng tiếp theo (Ví dụ: bấm để quay về trang chủ).
 *   **Tệp tin xử lý chính:** `CheckoutFragment.java`, `AddAddressFragment.java`, `AddCardFragment.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/dialog_success.xml`, `app/src/main/res/layout/dialog_failure.xml`
+    *   **Layout gốc (Root Layout):** `ConstraintLayout` làm gốc (giúp căn giữa hộp thoại popup trên toàn màn hình).
+    *   **Layout con & Cấu trúc:** `LinearLayout` (Vertical) lồng trong `ConstraintLayout` để xếp chồng các đối tượng thẳng hàng chính giữa.
+    *   **Thành phần UI sử dụng:** `ImageView` (icon checkmark xanh hoặc icon cảnh báo đỏ), `TextView` (thông điệp thành công/thất bại chi tiết), `MaterialButton` (nút xác nhận/đóng).
+    *   **Mô tả thiết kế:** Thiết kế popup dạng thẻ nổi (CardView) được bo tròn 4 góc, căn chỉnh nội dung vào giữa bằng `ConstraintLayout` để hiển thị trên nền mờ của màn hình gốc.
 *   **Sự liên kết với Model và Adapter:**
     *   Màn hình này không sử dụng Adapter do nó là một `Dialog` đơn lẻ hiển thị thông báo trạng thái tĩnh, nhưng nó nhận các dữ liệu ID đơn hàng hoặc Địa chỉ từ Model vừa được lưu thành công để hiển thị lên thông điệp (ví dụ: hiển thị mã hóa đơn, mã đơn hàng).
 *   **Mô tả hoạt động:**
@@ -178,6 +218,17 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Thực hiện truy vấn danh sách đơn hàng từ Firestore.
         *   **Vai trò:** Tải toàn bộ đơn hàng của user hiện tại, tiến hành lọc phân loại theo thuộc tính `status` và sắp xếp theo ngày đặt giảm dần để hiển thị lên RecyclerView.
 *   **Tệp tin xử lý chính:** `MyOrdersFragment.java` & `OrdersListFragment.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/fragment_my_orders.xml`, `app/src/main/res/layout/fragment_orders_list.xml`, `app/src/main/res/layout/item_order.xml`
+    *   **Layout gốc (Root Layout):**
+        - `fragment_my_orders.xml`: `LinearLayout` (Vertical) làm gốc (giúp định vị Toolbar $\rightarrow$ TabLayout $\rightarrow$ ViewPager2 tuần tự hoàn hảo).
+        - `fragment_orders_list.xml`: `ConstraintLayout` làm gốc (chứa `RecyclerView` toàn màn hình).
+        - `item_order.xml`: `MaterialCardView` làm gốc (bo góc tròn 18dp, viền mờ `#EDEDED`).
+    *   **Layout con & Cấu trúc:** `LinearLayout` ngang/dọc kết hợp lồng ghép bên trong `item_order.xml` để bố trí hình ảnh sản phẩm và nút hành động.
+    *   **Thành phần UI sử dụng:** `TabLayout` (chuyển tab Ongoing/Completed), `ViewPager2` (chứa các trang danh sách), `RecyclerView` (danh sách đơn hàng), `TextView` (mã đơn, ngày đặt, trạng thái, tổng tiền), `ImageView` (ảnh sản phẩm đầu tiên), `MaterialButton` (`btnTrackOrder`, `btnLeaveReview` - hành động).
+    *   **Mô tả thiết kế:**
+        - `fragment_my_orders.xml` sử dụng `TabLayout` nằm ngay dưới Toolbar hành trình, kết hợp với `ViewPager2` chiếm toàn bộ phần thân để trượt ngang chuyển tab.
+        - `item_order.xml` được bao bọc trong CardView hiện đại, bố trí ảnh sản phẩm bên trái, thông tin chi tiết (mã, giá, ngày đặt) ở giữa, và các nút bấm hành động tùy biến theo trạng thái (Track Order hoặc Leave Review) được xếp gọn góc dưới bên phải.
 *   **Sự liên kết với Model và Adapter:**
     *   **Sử dụng Model:**
         *   `Order.java` & `OrderItem.java`: Ứng dụng đọc dữ liệu thô từ collection `orders` trên Firestore và ánh xạ trực tiếp thành các đối tượng `Order.class`.
@@ -205,6 +256,16 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Cập nhật trạng thái hiển thị của các bước trên timeline dựa trên trạng thái của đơn hàng.
         *   **Vai trò:** Điều khiển giao diện timeline (đường nối, màu sắc nút chấm tròn) phản ánh chính xác tiến độ vận chuyển thực tế (Packing $\rightarrow$ Picked $\rightarrow$ In Transit $\rightarrow$ Delivered $\rightarrow$ Completed).
 *   **Tệp tin xử lý chính:** `OrdersListFragment.java` & `TrackOrderFragment.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/fragment_track_order.xml`, `app/src/main/res/layout/item_tracking_step.xml`
+    *   **Layout gốc (Root Layout):**
+        - `fragment_track_order.xml`: `ConstraintLayout` làm gốc (neo thông tin vận chuyển và RecyclerView).
+        - `item_tracking_step.xml` (từng dòng bước timeline): `ConstraintLayout` làm gốc (rất quan trọng để căn giữa tuyệt đối cho chấm tròn trạng thái và đường thẳng nối timeline).
+    *   **Layout con & Cấu trúc:** `ConstraintLayout` giúp cố định đường line đứng kết nối giữa các bước.
+    *   **Thành phần UI sử dụng:** `RecyclerView` (vẽ timeline đứng), `TextView` (thông tin người giao, vận đơn, mô tả trạng thái bước), `ImageView` (icon trạng thái bước), `View` (đường kẻ đứng kết nối các bước timeline).
+    *   **Mô tả thiết kế:**
+        - `fragment_track_order.xml` sử dụng `ConstraintLayout` chia 2 khối: Khối trên tóm tắt vận đơn/thông tin shipper, khối dưới là `RecyclerView` chứa timeline.
+        - `item_tracking_step.xml` thiết kế đặc biệt gồm 1 chấm tròn và 1 đường kẻ thẳng đứng (`View` chiều rộng 2dp). Trạng thái của bước (chưa tới/đang tới/đã qua) sẽ quyết định màu sắc chấm tròn và đường kẻ (màu xám nhạt hoặc màu đen/xanh).
 *   **Sự liên kết với Model và Adapter:**
     *   **Sử dụng Model:**
         *   `Order.java` & `ShippingAddressSnapshot.java`: Cung cấp thông tin tiến trình (`status`), người nhận, số điện thoại và địa chỉ giao hàng Snapshot của đơn hàng đó.
@@ -231,6 +292,17 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Thực thi Firestore Transaction cập nhật cơ sở dữ liệu.
         *   **Vai trò:** Đóng gói Model `Review`, gọi Firestore Transaction tính điểm trung bình sản phẩm và cập nhật trạng thái đơn hàng.
 *   **Tệp tin xử lý chính:** `OrdersListFragment.java` & `LeaveReviewBottomSheet.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/layout_leave_review_bottom_sheet.xml`, `app/src/main/res/layout/fragment_review.xml`, `app/src/main/res/layout/item_review.xml`
+    *   **Layout gốc (Root Layout):**
+        - `layout_leave_review_bottom_sheet.xml`: `LinearLayout` (Vertical) làm gốc để nội dung của BottomSheet được hiển thị tuần tự xếp chồng.
+        - `fragment_review.xml`: `ConstraintLayout` làm gốc.
+        - `item_review.xml` (từng bình luận đánh giá): `ConstraintLayout` làm gốc để dễ định vị avatar góc trái, rating bar sao nhỏ và nội dung văn bản bên dưới.
+    *   **Layout con & Cấu trúc:** Lồng các `LinearLayout` ngang để hiển thị điểm số và sao.
+    *   **Thành phần UI sử dụng:** `RatingBar` (chọn sao đánh giá), `EditText` (nhập bình luận), `TextView` (tên sản phẩm), `ImageView` (icon close), `MaterialButton` (nút Submit review), `RecyclerView` (danh sách review trong `fragment_review.xml`).
+    *   **Mô tả thiết kế:**
+        - `layout_leave_review_bottom_sheet.xml` kế thừa từ `BottomSheetDialogFragment`, trượt nhẹ lên từ dưới đáy màn hình với các góc trên được bo tròn mềm mại.
+        - Bố cục sử dụng `LinearLayout` (Vertical) sắp xếp lần lượt: Tiêu đề $\rightarrow$ RatingBar trung tâm dạng sao lớn $\rightarrow$ Khung EditText nhập ý kiến có giới hạn dòng $\rightarrow$ Nút gửi đánh giá rộng ngang màn hình ở chân trang.
 *   **Sự liên kết với Model và Adapter:**
     *   **Sử dụng Model:**
         *   `Review.java`: Model lưu thông tin đánh giá được khởi tạo bao gồm `reviewId`, `productId`, `userId`, `userName`, `rating`, `comment`, và thời gian tạo.
@@ -253,6 +325,17 @@ Tài liệu này phân tích chi tiết quy trình xử lý (workflow) của 4 p
         *   **Chức năng:** Thực hiện gửi tin nhắn lên Firestore.
         *   **Vai trò:** Dùng WriteBatch tạo tin nhắn mới và cập nhật thông tin tổng hợp của phòng chat (tin nhắn cuối, thời gian cập nhật, tăng bộ đếm tin chưa đọc của Admin).
 *   **Tệp tin xử lý chính:** `CustomerServiceFragment.java`
+*   **Thiết kế giao diện (Layout XML & UI Components):**
+    *   **Tệp tin layout liên quan:** `app/src/main/res/layout/fragment_customer_service_chat.xml`
+    *   **Layout gốc (Root Layout):** `ConstraintLayout` làm gốc (giúp ghim chặt Toolbar ở đầu trang, InputBar ở đáy trang và vùng chat co giãn linh hoạt ở giữa).
+    *   **Layout con & Cấu trúc:**
+        - Vùng hiển thị tin nhắn: `NestedScrollView` chứa `LinearLayout` xếp dọc (`chatMessagesContainer`) có thuộc tính `animateLayoutChanges="true"` để chạy animation khi thêm tin nhắn mới.
+        - Thanh soạn thảo dưới đáy: `LinearLayout` ngang chứa `EditText` và `ImageButton` gửi.
+    *   **Thành phần UI sử dụng:** `NestedScrollView` / `ScrollView` (`chatScroll` - cuộn tin nhắn), `LinearLayout` (`chatMessagesContainer` - chứa động các TextView bong bóng tin nhắn), `EditText` (`edtChatMessage` - khung nhập liệu), `ImageButton` (`btnSendVoice` / `btnAction` - gửi hoặc ghi âm).
+    *   **Mô tả thiết kế:** Bố cục chia thành 3 phần cố định bằng `ConstraintLayout`:
+        - Toolbar (Top): Chứa nút quay lại và tiêu đề hỗ trợ.
+        - Vùng tin nhắn (Middle): Một `NestedScrollView` chiếm trọn vùng giữa, chứa container `LinearLayout` có thuộc tính `animateLayoutChanges="true"` giúp tin nhắn mới trồi lên mượt mà. Bong bóng chat được tạo động: Chat của tôi là `TextView` nền đen, chữ trắng nằm góc phải (`bg_button_black`); chat của đối phương là `TextView` nền xám nhạt, chữ đen nằm góc trái (`bg_search_bar`).
+        - Thanh nhập liệu (Bottom): Một `LinearLayout` ngang chứa `EditText` bo góc tròn và nút gửi/mic dạng tròn đặt bên phải.
 *   **Sự liên kết với Model và Adapter:**
     *   **Sử dụng Model:**
         *   `ChatMessage.java`: Ánh xạ cấu trúc tin nhắn gồm `senderId`, `receiverId`, `content`, `type`, `fileUrl`, và `createdAt`.
