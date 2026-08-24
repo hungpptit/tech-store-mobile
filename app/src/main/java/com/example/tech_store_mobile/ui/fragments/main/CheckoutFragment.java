@@ -23,6 +23,9 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.viewpager.widget.ViewPager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import com.example.tech_store_mobile.adapters.CheckoutProductAdapter;
 
 import com.example.tech_store_mobile.Model.Address;
 import com.example.tech_store_mobile.Model.CreatePaymentIntentRequest;
@@ -105,6 +108,9 @@ public class CheckoutFragment extends Fragment {
     private TextView notificationBadgeView;
     private ArrayList<String> selectedCartDocIds = new ArrayList<>();
     private String currentReservationId;
+    private RecyclerView rvCheckoutProducts;
+    private CheckoutProductAdapter checkoutProductAdapter;
+    private final List<OrderItem> checkoutOrderItems = new ArrayList<>();
 
     public static CheckoutFragment newInstance(double subtotal, double vat, double shipping, double total, ArrayList<String> selectedCartDocIds) {
         CheckoutFragment fragment = new CheckoutFragment();
@@ -166,6 +172,11 @@ public class CheckoutFragment extends Fragment {
         tvShippingValue = view.findViewById(R.id.tv_shipping_value_checkout);
         tvTotalValue = view.findViewById(R.id.tv_total_value_checkout);
         btnPlaceOrder = view.findViewById(R.id.btn_place_order);
+
+        rvCheckoutProducts = view.findViewById(R.id.rv_checkout_products);
+        rvCheckoutProducts.setLayoutManager(new LinearLayoutManager(requireContext()));
+        checkoutProductAdapter = new CheckoutProductAdapter(checkoutOrderItems);
+        rvCheckoutProducts.setAdapter(checkoutProductAdapter);
     }
 
     private void bindData() {
@@ -190,6 +201,10 @@ public class CheckoutFragment extends Fragment {
             defaultPaymentId = null;
             renderAddress();
             renderPaymentDetails();
+            checkoutOrderItems.clear();
+            if (checkoutProductAdapter != null) {
+                checkoutProductAdapter.notifyDataSetChanged();
+            }
             return;
         }
 
@@ -212,11 +227,13 @@ public class CheckoutFragment extends Fragment {
 
                     loadDefaultAddress(userId);
                     loadDefaultPaymentMethod(userId);
+                    loadCheckoutProducts(userId);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to load checkout defaults", e);
                     loadDefaultAddress(userId);
                     loadDefaultPaymentMethod(userId);
+                    loadCheckoutProducts(userId);
                 });
     }
 
@@ -384,32 +401,20 @@ public class CheckoutFragment extends Fragment {
                 return;
             }
 
-            if (isCardPaymentSelected) {
-                String userId = AuthManager.getCurrentUid();
-                if (userId == null) {
-                    Toast.makeText(requireContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                btnPlaceOrder.setEnabled(false);
-                btnPlaceOrder.setText(R.string.checkout_processing);
-
-                preLoadCheckoutItems(userId, 0, new ArrayList<>(), new OnItemsLoadedListener() {
-                    @Override
-                    public void onLoaded(List<OrderItem> items) {
-                        performStockReservation(userId, items);
-                    }
-
-                    @Override
-                    public void onFailure(String error) {
-                        btnPlaceOrder.setEnabled(true);
-                        btnPlaceOrder.setText(R.string.checkout_place_order);
-                        Toast.makeText(requireContext(), "Lỗi tải thông tin sản phẩm: " + error, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            } else {
-                Toast.makeText(requireContext(), R.string.checkout_place_order_toast, Toast.LENGTH_SHORT).show();
+            String userId = AuthManager.getCurrentUid();
+            if (userId == null) {
+                Toast.makeText(requireContext(), "Vui lòng đăng nhập lại!", Toast.LENGTH_SHORT).show();
+                return;
             }
+
+            if (checkoutOrderItems.isEmpty()) {
+                Toast.makeText(requireContext(), "Đang tải thông tin sản phẩm, vui lòng đợi...", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            btnPlaceOrder.setEnabled(false);
+            btnPlaceOrder.setText(R.string.checkout_processing);
+            performStockReservation(userId, checkoutOrderItems);
         });
     }
 
@@ -854,11 +859,142 @@ public class CheckoutFragment extends Fragment {
         super.onDestroyView();
     }
 
+    private void loadCheckoutProducts(String userId) {
+        checkoutOrderItems.clear();
+        if (checkoutProductAdapter != null) {
+            checkoutProductAdapter.notifyDataSetChanged();
+        }
+
+        preLoadCheckoutItems(userId, 0, checkoutOrderItems, new OnItemsLoadedListener() {
+            @Override
+            public void onLoaded(List<OrderItem> items) {
+                if (!isAdded()) {
+                    return;
+                }
+                if (checkoutProductAdapter != null) {
+                    checkoutProductAdapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Log.e(TAG, "Failed to load checkout products: " + error);
+            }
+        });
+    }
+
+    private void persistCashOrderInvoiceAndHistoryWithReservation(String userId, String orderId, List<OrderItem> orderItems) {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (orderItems == null || orderItems.isEmpty()) {
+            Log.w(TAG, "No order items found while saving checkout data.");
+            Toast.makeText(requireContext(), "Không thể lưu đơn hàng vì không có sản phẩm hợp lệ.", Toast.LENGTH_SHORT).show();
+            if (currentReservationId != null) {
+                releaseReservationImmediately(currentReservationId);
+                currentReservationId = null;
+            }
+            btnPlaceOrder.setEnabled(true);
+            btnPlaceOrder.setText(R.string.checkout_place_order);
+            return;
+        }
+
+        Timestamp now = Timestamp.now();
+        String paymentMethodLabel = "Cash";
+        String orderDocumentId = !TextUtils.isEmpty(orderId) ? orderId : db.collection("orders").document().getId();
+        String hoaDonId = db.collection("hoa_dons").document().getId();
+        String paymentHistoryId = db.collection("lich_su_thanh_toans").document().getId();
+        String invoiceNumber = "INV-" + System.currentTimeMillis();
+        String transactionId = "COD-" + System.currentTimeMillis();
+
+        Order order = new Order(
+                orderDocumentId,
+                userId,
+                now,
+                "Packing",
+                orderItems,
+                new OrderSummary(subtotal, shipping, vat, total),
+                buildShippingAddressSnapshot(),
+                paymentMethodLabel,
+                buildTrackingHistory(now)
+        );
+
+        HoaDon hoaDon = new HoaDon(
+                hoaDonId,
+                userId,
+                orderDocumentId,
+                invoiceNumber,
+                now,
+                null,
+                "Pending",
+                paymentMethodLabel,
+                "COD",
+                transactionId,
+                orderItems,
+                new OrderSummary(subtotal, shipping, vat, total),
+                buildShippingAddressSnapshot(),
+                "Thanh toán bằng tiền mặt (COD)",
+                now
+        );
+
+        LichSuThanhToan history = new LichSuThanhToan(
+                paymentHistoryId,
+                userId,
+                hoaDonId,
+                orderDocumentId,
+                paymentMethodLabel,
+                "COD",
+                "Pending",
+                transactionId,
+                "",
+                total,
+                StripeConfig.CURRENCY_USD,
+                null,
+                now,
+                null,
+                "Thanh toán bằng tiền mặt (COD)"
+        );
+
+        WriteBatch batch = db.batch();
+        batch.set(db.collection("orders").document(orderDocumentId), order);
+        batch.set(db.collection("hoa_dons").document(hoaDonId), hoaDon);
+        batch.set(db.collection("lich_su_thanh_toans").document(paymentHistoryId), history);
+
+        if (!TextUtils.isEmpty(currentReservationId)) {
+            batch.update(db.collection("stock_reservations").document(currentReservationId), "status", "completed");
+        }
+
+        if (selectedCartDocIds != null) {
+            for (String docId : selectedCartDocIds) {
+                if (!TextUtils.isEmpty(docId)) {
+                    batch.delete(db.collection("carts").document(docId));
+                }
+            }
+        }
+
+        batch.commit()
+                .addOnSuccessListener(unused -> {
+                    currentReservationId = null;
+                    markCartNeedsReload();
+                    showPaymentSuccessDialog();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to save checkout documents", e);
+                    Toast.makeText(requireContext(), "Không thể đặt hàng bằng tiền mặt: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    currentReservationId = null;
+                    btnPlaceOrder.setEnabled(true);
+                    btnPlaceOrder.setText(R.string.checkout_place_order);
+                });
+    }
+
     private interface OnItemsLoadedListener {
         void onLoaded(List<OrderItem> items);
         void onFailure(String error);
     }
 
+
+//  Tải danh sách chi tiết các mặt hàng cần thanh toán từ database Firestore.
     private void preLoadCheckoutItems(String userId, int index, List<OrderItem> loadedItems, OnItemsLoadedListener listener) {
         if (!isAdded()) {
             return;
@@ -933,6 +1069,7 @@ public class CheckoutFragment extends Fragment {
                 });
     }
 
+//   Thực hiện kiểm tra tồn kho và trừ kho tạm thời trong một Firestore Transaction
     private void performStockReservation(String userId, List<OrderItem> items) {
         String reservationId = db.collection("stock_reservations").document().getId();
 
@@ -994,7 +1131,12 @@ public class CheckoutFragment extends Fragment {
             if (!isAdded()) return;
             Log.d(TAG, "Stock reserved successfully: " + resId);
             currentReservationId = resId;
-            startStripePaymentFlowWithReservation(userId, items);
+            if (isCardPaymentSelected) {
+                startStripePaymentFlowWithReservation(userId, items);
+            } else {
+                String orderId = "CHECKOUT-" + System.currentTimeMillis();
+                persistCashOrderInvoiceAndHistoryWithReservation(userId, orderId, items);
+            }
         })
         .addOnFailureListener(e -> {
             if (!isAdded()) return;
@@ -1108,6 +1250,8 @@ public class CheckoutFragment extends Fragment {
         });
     }
 
+
+//    Hàm lưu hóa đơn và hoàn tất giao dịch
     private void persistOrderInvoiceAndHistoryWithReservation(String userId, String orderId, CreatePaymentIntentResponse response,
                                                                List<OrderItem> orderItems) {
         if (!isAdded()) {
