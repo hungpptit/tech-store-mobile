@@ -64,16 +64,17 @@ flowchart TB
     VM --> FirestoreDB
 
     %% Network & Backend
-    APIClients -->|REST API (HTTPS)| BackendService
-    PaymentAPI -->|Stripe SDK| StripeServer
-    CardVaultAPI -->|Stripe SDK| StripeServer
-    CronJob -->|Admin SDK ACID Transactions| FirestoreDB
+    APIClients -->|"REST API (HTTPS)"| PaymentAPI
+    APIClients -->|"REST API (HTTPS)"| CardVaultAPI
+    PaymentAPI -->|"Stripe SDK"| StripeServer
+    CardVaultAPI -->|"Stripe SDK"| StripeServer
+    CronJob -->|"Admin SDK ACID Transactions"| FirestoreDB
 
     %% External Services
-    GlideCDN -->|Upload/Fetch Avatars| CloudinaryCDN
-    APIClients -->|Fetch Administrative Units| ProvincesAPI
-    FirestoreDB -.->|Snapshot Listeners (Chat & Inventory)| VM
-    FCMServer -.->|Order & Promo Push| UI
+    GlideCDN -->|"Upload/Fetch Avatars"| CloudinaryCDN
+    APIClients -->|"Fetch Administrative Units"| ProvincesAPI
+    FirestoreDB -.->|"Snapshot Listeners (Chat & Inventory)"| VM
+    FCMServer -.->|"Order & Promo Push"| UI
 ```
 
 ---
